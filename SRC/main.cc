@@ -49,7 +49,7 @@ int main(int argc, char* argv[]){
   double new_r(0.0); // new position proposed
   double s_old(0.0), s_new(0.0); // part of the action that is changed with the new position proposed (old and new values respectively)
 
-  string output("output.out"); // output file
+  string output("caca.out"); // output file
   ofstream fichier_output(output.c_str());
   fichier_output.precision(15);
 
