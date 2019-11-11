@@ -1,0 +1,18 @@
+% Parametres physiques :
+N_part	  = 1
+tau	  = 1000
+mass	  = 1
+frequency = 0.1
+
+% Paramètres géométriques:
+pos_min  = -5
+pos_max  = -1
+
+% Parametres numeriques :
+N_slices = 2000
+h 	 = 10
+idrate   = 0.5
+MCS	 = 2000
+n_stride = 1
+
+output = output

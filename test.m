@@ -1,3 +1,4 @@
+%{
 data=load("output.out");
 figure
 
@@ -16,9 +17,14 @@ for i=2:size(data,1)
     end
     set(t,'XData',[data(i,:) data(i,1)])
 end
+%}
 
 %%
+n_part=2;
 data=load("output.out");
+%for k=1:n_part
+%   A(:,:,k)=data( 
+%end
 figure
 t=histogram(data(1,:),91,'Normalization','probability');
 ylim([0 0.2])
