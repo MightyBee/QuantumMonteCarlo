@@ -36,9 +36,15 @@ int main(){
   double new_r(0.0); // new position proposed
   double s_old(0.0), s_new(0.0); // part of the action that is changed with the new position proposed (old and new values respectively)
 
+<<<<<<< HEAD
   string output("PNGU.out"); // output file
   ofstream fichier_potentiel(output.c_str());
   fichier_potentiel.precision(15);
+=======
+  string output("caca.out"); // output file
+  ofstream fichier_output(output.c_str());
+  fichier_output.precision(15);
+>>>>>>> cd637479e0bf2f4b1b1add93918324aa8998fceb
 
   for(size_t i(0); i<MCS; i++){
     for(size_t j(0); j<N_slices; j++){
