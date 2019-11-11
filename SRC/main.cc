@@ -18,7 +18,7 @@ int main(){
   double pos_min(-10.0), pos_max(+10.0); // initial mininum/maximal position
   double h(10.0); // initial maximum displacement of a point in the path
   vector<vector<double>> positions(N_slices,vector<double>(N_part,0)); // table : each row corresponds to a time slice and contains the coordinates (1D for now) of the N_part particles, or each column corresponds to the path of a particle
-
+caca
   // switch columns and rows, TODO or not TODO ?
 
   for(auto& Im_t : positions){ // initialize random paths for each particles
