@@ -6,6 +6,8 @@
 #include "ConfigFile.tpp"
 using namespace std;
 
+//CIAOOO
+
 double randomDouble(const double& min, const double& max); // function ton generate a random (uniform) double between 'min' and 'max'
 //double QLagrangian(const vector<vector<double>>& pos, const double& d_tau);
 //double diff_QLagrangian(const vector<vector<double>>& pos, const double& d_tau, const unsigned int& m, const unsigned int& n, double const& new_pos);
@@ -32,7 +34,6 @@ int main(int argc, char* argv[]){
   double h(configFile.get<double>("h")); // initial maximum displacement of a point in the path
   double accrate(0.0), idrate(configFile.get<double>("idrate"));
   vector<vector<double>> positions(N_slices,vector<double>(N_part,0)); // table : each row corresponds to a time slice and contains the coordinates (1D for now) of the N_part particles, or each column corresponds to the path of a particle
-
   // switch columns and rows, TODO or not TODO ?
 
   for(auto& Im_t : positions){ // initialize random paths for each particles
