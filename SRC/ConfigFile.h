@@ -16,22 +16,22 @@
 
 class ConfigFile{
 
-  public:
-      ConfigFile(const std::string& filename);
-      ~ConfigFile();
+	public:
+			ConfigFile(const std::string& filename);
+			~ConfigFile();
 
-      template<typename T> T get(const std::string& key) const;
+			template<typename T> T get(const std::string& key) const;
 
-      void process(const std::string& lineread);
+			void process(const std::string& lineread);
 
-      std::string toString() const;
+			std::string toString() const;
 
-      void printOut(const std::string& path) const;
+			void printOut(const std::string& path) const;
 
-  private:
-      std::string trim(const std::string& str);
+	private:
+			std::string trim(const std::string& str);
 
-      std::map<std::string, std::string> configMap;
+			std::map<std::string, std::string> configMap;
 };
 
 #endif
