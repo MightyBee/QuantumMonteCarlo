@@ -26,13 +26,15 @@ int main(int argc, char* argv[]){
   double tau_final(configFile.get<double>("tau")); // tau<->beta=1/(T*k_B) the so called inverse temperature
 	double d_tau(tau_final/N_slices); // imaginary time step
 	double m(configFile.get<double>("mass")*d_tau), // dimensionless mass
-         omega(configFile.get<double>("freqeuncy")*d_tau); // dimensionless angular frequency
+         omega(configFile.get<double>("frequency")*d_tau); // dimensionless angular frequency
   double pos_min(configFile.get<double>("pos_min")), // initial mininum position
          pos_max(configFile.get<double>("pos_max")); // initial maximal position
   double h(configFile.get<double>("h")); // initial maximum displacement of a point in the path
   double accrate(0.0), idrate(configFile.get<double>("idrate"));
-	vector<vector<double>> system(N_part,vector<double>(N_slices,0)); // table : each row corresponds to a particle and contains the coordinates (1D for now) in different time slices
-int lol_test(0);
+	vector<vector<double>> system(N_part,vector<double>(N_slices,0.0)); // table : each row corresponds to a particle and contains the coordinates (1D for now) in different time slices
+	vector<vector<double>> verif(N_part,vector<double>(N_slices,0.0));
+
+	int lol_test(0);
 	for(auto& particle : system){ // initialize random paths for each particles
 		for(auto& pos : particle){
 			pos=randomDouble(pos_min+lol_test,pos_max+lol_test);
@@ -59,6 +61,7 @@ int lol_test(0);
 				mm_plu=(mm+N_slices-1)%N_slices; // mm-1 with periodic boundary condition
 				mm_min=(mm+1)%N_slices; // mm+1 with periodic boundary condition
 				nn=rand()%N_part; // random integer between 0 and N_part-1
+				verif[nn][mm]++;
 				new_r=system[nn][mm]+randomDouble(-1,1)*h; // proposed new position for the particle nn at time slice mm*d_tau
 
 				// as we take the difference of new and old action S_new-S_old, we can consider only the part of the action that is affected by the proposed new position
@@ -79,7 +82,7 @@ int lol_test(0);
 				}
 			}
 			if(i>500) h*=accrate/idrate;
-			cout << accrate << " " << h << endl;
+			//cout << accrate << " " << h << endl;
 			accrate=0.0;
 		}
 
@@ -96,6 +99,19 @@ int lol_test(0);
 	}
 
 	fichier_output.close();
+
+	double visit_min(N_part*N_slices), visit_max(0.0);
+	for(const auto& el : verif){
+		for(const auto& n : el){
+			cout << n/MCS << endl;
+			if(n/MCS<visit_min) visit_min=n/MCS;
+			if(n/MCS>visit_max) visit_max=n/MCS;
+
+		}
+		cout << endl;
+	}
+	cout << "Site le moins visité, moyenne : " << visit_min << endl;
+	cout << "Site le plus visité,  moyenne : " << visit_max << endl;
 
 	return 0;
 }
