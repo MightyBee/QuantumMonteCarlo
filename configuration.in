@@ -1,16 +1,24 @@
 % Parametres physiques :
-N_part	  = 3
+N_part	  = 1
 tau	  = 2000
 mass	  = 1
-frequency = 0.1
+frequency_x = 2
+frequency_y = 0.3
+frequency_z = 0.05
 
 % Paramètres géométriques:
-pos_min  = -5
-pos_max  = -1
+pos_min_x  = -5
+pos_min_y  = -10
+pos_min_z  = -10
+pos_max_x  = -1
+pos_max_y  = 10
+pos_max_z  = 10
 
 % Parametres numeriques :
-N_slices = 1000
-h 	 = 10
+N_slices = 2000
+h_x = 10
+h_y = 10
+h_z = 10
 idrate   = 0.5
 MCS	 = 2000
 n_stride = 1
