@@ -17,7 +17,7 @@ SRC=SRC/
 
 all: main
 
-$(LIB)main.o: $(SRC)main.cc
+$(LIB)main.o: $(SRC)main.cc $(SRC)ConfigFile.h $(SRC)ConfigFile.tpp
 	$(CC) $(CXXFLAGS) -c -o $@ $<
 
 #$(LIB)Vecteur.o: $(SRC)Vecteur.cc $(SRC)Vecteur.h $(SRC)Erreur.h

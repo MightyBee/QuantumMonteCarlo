@@ -1,15 +1,15 @@
 % Parametres physiques :
-N_part	  = 3
-tau	  = 2000
+N_part	  = 4
+tau	  = 10
 mass	  = 1
-frequency = 0.1
+frequency = 1
 
 % Paramètres géométriques:
-pos_min  = -5
-pos_max  = -1
+pos_min  = -10
+pos_max  = 10
 
 % Parametres numeriques :
-N_slices = 1000
+N_slices = 200
 h 	 = 10
 idrate   = 0.5
 MCS	 = 2000
