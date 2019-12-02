@@ -35,68 +35,68 @@ double dV(const double& x);	// V'(x)
 //double QLagrangian(const vector<vector<double>>& pos, const double& d_tau);
 //double diff_QLagrangian(const vector<vector<double>>& pos, const double& d_tau, const unsigned int& m, const unsigned int& n, double const& new_pos);
 
+
+// Abstract class for potential
 class Potential {
 public:
-  // Methodes virtuelles pures => classe abstraite
-  virtual double operator()(const double& x) const = 0; // return V at point x
+	// pure virtual method => abstract class
+	virtual double operator()(const double& x) const = 0; // return V at point x
 };
 
+// Class for a harmonic potential
 class Potential_harm: public Potential {
 public:
-  // Pas de constructeur par defaut => on force a specifier une valeur
-  Potential_harm(ConfigFile const& configFile) :
-  Potential(), m(configFile.get<double>("mass")), omega2(pow(configFile.get<double>("omega"),2))
-  {}
+	Potential_harm(ConfigFile const& configFile) :
+		Potential(),
+		m(configFile.get<double>("mass")),
+		omega2(pow(configFile.get<double>("omega"),2))
+		{}
 
-  // Definition des methodes virtuelles pures :
-  double operator()(const double& x) const
-  {
-    return m*omega2*x*x;
-  }
+	double operator()(const double& x) const {
+		return m*omega2*x*x;
+	}
 
 private:
   double m, omega2;
 };
 
+// Class for a double well potential
 class Potential_double: public Potential {
 public:
+	Potential_double(ConfigFile const& configFile) :
+		Potential(),
+		V0(configFile.get<double>("V0")),
+		x0(configFile.get<double>("x0"))
+		{}
 
-  Potential_double(ConfigFile const& configFile) :
-  Potential(),
-  V0(configFile.get<double>("V0")),
-  x0(configFile.get<double>("x0"))
-  {}
-
-  double operator()(const double& x) const
-  {
-    return V0*pow(pow(x/x0,2)-1,2);
-  }
+	double operator()(const double& x) const {
+		return V0*pow(pow(x/x0,2)-1,2);
+	}
 
 private:
-  double V0, x0;
+	double V0, x0;
 };
 
+// Class for a square potential (barrier for V0>0 and well for V0<0)
 class Potential_square: public Potential {
 public:
+	Potential_square(ConfigFile const& configFile) :
+		Potential(),
+		V0(configFile.get<double>("V0")),
+		xc(configFile.get<double>("xc")),
+		L(configFile.get<double>("L"))
+		{}
 
-  Potential_square(ConfigFile const& configFile) :
-  Potential(),
-  V0(configFile.get<double>("V0")),
-  xc(configFile.get<double>("xc")),
-  L(configFile.get<double>("L"))
-  {}
-
-  double operator()(const double& x) const
-  {
+	double operator()(const double& x) const {
 		if(x<xc-0.5*L || x>xc+0.5*L){
 			return 0;
 		}else{
 			return V0;
 		}
-  }
+	}
 
 private:
-  double V0, xc, L;
+	double V0, xc, L;
 };
 
 
@@ -112,14 +112,14 @@ int main(int argc, char* argv[]){
 
 	//############################## VILLARD LIBRARY ##############################
 
-  string inputPath("configuration.in"); // Fichier d'input par defaut
-  if(argc>1) // Fichier d'input specifie par l'utilisateur ("./Exercice7 config_perso.in")
-    inputPath = argv[1];
+	string inputPath("configuration.in"); // Fichier d'input par defaut
+	if(argc>1) // Fichier d'input specifie par l'utilisateur ("./Exercice7 config_perso.in")
+		inputPath = argv[1];
 
-  ConfigFile configFile(inputPath); // Les parametres sont lus et stockes dans une "map" de strings.
+	ConfigFile configFile(inputPath); // Les parametres sont lus et stockes dans une "map" de strings.
 
-  for(int i(2); i<argc; ++i) // Input complementaires ("./Exercice7 config_perso.in input_scan=[valeur]")
-    configFile.process(argv[i]);
+	for(int i(2); i<argc; ++i) // Input complementaires ("./Exercice7 config_perso.in input_scan=[valeur]")
+		configFile.process(argv[i]);
 
 
 	//############################## READ PARAMETERS ##############################
@@ -137,10 +137,10 @@ int main(int argc, char* argv[]){
 	if(type_V=="harmonic") V = new Potential_harm(configFile);
 	else if(type_V=="double") V = new Potential_double(configFile);
 	else if(type_V=="square") V = new Potential_square(configFile);
-  else{
-    cerr << "Please choose between ""harmonic"", ""double"" or ""square"" for ""type_V""." << endl;
-    return -1;
-  }
+	else{
+		cerr << "Please choose between ""harmonic"", ""double"" or ""square"" for ""type_V""." << endl;
+		return -1;
+	}
 	double pos_min(configFile.get<double>("pos_min"));							// initial minimum position
 	double pos_max(configFile.get<double>("pos_max"));							// initial maximal position
 	double h(configFile.get<double>("h"));											// maximum uniform displacement of a point in the path
@@ -151,8 +151,8 @@ int main(int argc, char* argv[]){
 	vector<vector<double>> system(N_part, vector<double>(N_slices, 0.0));
 	vector<vector<int>> verif(N_part, vector<int>(N_slices, 0));
 	//Output file
-	string output(configFile.get<string>("output")+".out"); // output file
-  ofstream fichier_output(output.c_str());
+	string output(configFile.get<string>("output")+".out"); 					// output file
+	ofstream fichier_output(output.c_str());
 	fichier_output.precision(15);														// Precision
 
 
