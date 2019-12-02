@@ -1,5 +1,5 @@
 % Parametres physiques :
-N_part	  = 4
+N_part	  = 1
 tau	  = 10
 mass	  = 1
 frequency = 1
@@ -9,10 +9,20 @@ pos_min  = -10
 pos_max  = 10
 
 % Parametres numeriques :
-N_slices = 200
+N_slices = 500
 h 	 = 10
 idrate   = 0.5
-MCS	 = 2000
-n_stride = 1
+MCS	 = 200000
+n_stride = 20
 
 output = output
+
+
+% Potentials (harmonic, double or square)
+type_V = harmonic
+
+omega = 1  %harmonic
+x0 = 1 %double
+V0 = 1 %double %square
+xc = 0 %square
+L = 2 %square

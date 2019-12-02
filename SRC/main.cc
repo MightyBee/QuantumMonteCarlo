@@ -11,6 +11,72 @@ double potentialAction(const double& m, const double& omega, const vector<double
 //double QLagrangian(const vector<vector<double>>& pos, const double& d_tau);
 //double diff_QLagrangian(const vector<vector<double>>& pos, const double& d_tau, const unsigned int& m, const unsigned int& n, double const& new_pos);
 
+class Potential {
+public:
+  // Methodes virtuelles pures => classe abstraite
+  virtual double operator()(const double& x) const = 0; // return V at point x
+};
+
+class Potential_harm: public Potential {
+public:
+  // Pas de constructeur par defaut => on force a specifier une valeur
+  Potential_harm(ConfigFile const& configFile) :
+  Potential(), m(configFile.get<double>("mass")), omega2(pow(configFile.get<double>("omega"),2))
+  {}
+
+  // Definition des methodes virtuelles pures :
+  double operator()(const double& x) const
+  {
+    return m*omega2*x*x;
+  }
+
+private:
+  double m, omega2;
+};
+
+class Potential_double: public Potential {
+public:
+
+  Potential_double(ConfigFile const& configFile) :
+  Potential(),
+  V0(configFile.get<double>("V0")),
+  x0(configFile.get<double>("x0"))
+  {}
+
+  double operator()(const double& x) const
+  {
+    return V0*pow(pow(x/x0,2)-1,2);
+  }
+
+private:
+  double V0, x0;
+};
+
+class Potential_square: public Potential {
+public:
+
+  Potential_square(ConfigFile const& configFile) :
+  Potential(),
+  V0(configFile.get<double>("V0")),
+  xc(configFile.get<double>("xc")),
+  L(configFile.get<double>("L"))
+  {}
+
+  double operator()(const double& x) const
+  {
+		if(x<xc-0.5*L || x>xc+0.5*L){
+			return 0;
+		}else{
+			return V0;
+		}
+  }
+
+private:
+  double V0, xc, L;
+};
+
+
+
 int main(int argc, char* argv[]){
 
   string inputPath("configuration.in"); // Fichier d'input par defaut
@@ -28,6 +94,16 @@ int main(int argc, char* argv[]){
 	double d_tau(tau_final/N_slices); // imaginary time step
 	double m(configFile.get<double>("mass")*d_tau), // dimensionless mass
          omega(configFile.get<double>("frequency")*d_tau); // dimensionless angular frequency
+
+  string type_V(configFile.get<string>("type_V"));
+	Potential* V;
+	if(type_V=="harmonic") V = new Potential_harm(configFile);
+	else if(type_V=="double") V = new Potential_double(configFile);
+	else if(type_V=="square") V = new Potential_square(configFile);
+  else{
+    cerr << "Please choose between ""harmonic"", ""double"" or ""square"" for ""type_V""." << endl;
+    return -1;
+  }
   double pos_min(configFile.get<double>("pos_min")), // initial mininum position
          pos_max(configFile.get<double>("pos_max")); // initial maximal position
   double h(configFile.get<double>("h")); // initial maximum displacement of a point in the path
@@ -50,7 +126,7 @@ int main(int argc, char* argv[]){
 	double new_r(0.0), displacement(0.0); // new position proposed and displacement proposed
 	double s_old(0.0), s_new(0.0); // part of the action that is changed with the new position proposed (old and new values respectively)
 
-	string output("output.out"); // output file
+	string output(configFile.get<string>("output")+".out"); // output file
   ofstream fichier_output(output.c_str());
   fichier_output.precision(15);
 	for(auto& particle : system){

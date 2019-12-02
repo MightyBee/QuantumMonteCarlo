@@ -1,5 +1,5 @@
 %% loading data %%
-n_part=4;
+n_part=1;
 data=load("output.out");
 n_MCS=size(data,1);
 n_slices=size(data,2)/n_part;
@@ -40,10 +40,37 @@ end
 
 %% histogram %%%{
 
+xMin=-10;
+xMax=+10;
+Ninter=100000;
+X=linspace(xMin,xMax,Ninter+1);
+dx=(xMax-xMin)/Ninter;
+
+V=0.1*X.^4-5*X.^2;
+
+T=10;
+kB=1;%1.380649*10^(-23);
+beta=1.0/(T);
+
 figure
+plot(X,V)
+
+z=partitionFct(X,V,beta,dx);
+
+p=exp(-V*beta)/z;
+
+figure
+plot(X,p)
+
+pTot=0.5*dx*(p(1)+p(end));
+for i=2:length(p)-1
+    pTot=pTot+dx*p(i);
+end
+disp(pTot)
+
 hold on;
 for k=1:n_part
-    h(k)=histogram(B(:,k),'Normalization','probability');
+    h(k)=histogram(B(:,k),'Normalization','pdf');
 end
 
 figure
@@ -67,4 +94,15 @@ for i=2:n_MCS
         
 end
 %}
+
+function Z=partitionFct(X,V,beta,dx)
+if ~isequal(size(X),size(V))
+    disp("fff")
+else
+    Z=0;
+    for Ei=V
+        Z=Z+exp(-Ei*beta)*dx;
+    end
+end
+end
 
