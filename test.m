@@ -1,6 +1,11 @@
+set(groot,'defaultAxesFontSize',13)
+set(groot,'defaultAxesLabelFontSizeMultiplier',19/13)
+set(0,'defaultTextInterpreter','latex');
+set(0,'defaultLegendInterpreter','latex');
+
 %% loading data %%
-n_part=1;
-data=load("output.out");
+n_part=3;
+data=load("output2.out");
 n_MCS=size(data,1);
 n_slices=size(data,2)/n_part;
 A=zeros(n_MCS,n_slices,n_part);
@@ -36,6 +41,26 @@ for i=2:n_MCS
             set(t(k),'XData',[A(i,:,k) A(i,1,k)])
         end
 end
+
+%}
+
+fig3=figure('Position',[50,50,650,450]);
+hold on;
+for k=[3001 5001 7000]
+    t(k)=plot([A(k,:,1) A(k,1,1)],[0:1:size(A,2)],'LineWidth',2);
+end
+hold off
+xlim([-3 3])
+xlabel('$\tilde{x}$')
+ylabel('$\tau / \delta \tau$')
+yticks(0:16)
+yticklabels({'0' '' '2' '' '4' '' '6' '' '8' '' '10' '' '12' '' '14' '' '16'})
+xticks(-3:3:3)
+grid on, box on
+print(fig3,'threePaths', '-depsc');
+
+
+
 %}
 
 %% histogram %%%{
@@ -47,8 +72,12 @@ X=linspace(xMin,xMax,Ninter+1);
 dx=(xMax-xMin)/Ninter;
 
 V=0.1*X.^4-5*X.^2;
+V=0.5*X.^2;
+x0=3;
+V0=0.5;
+V=V0*((X./x0).^2-1).^2;
 
-T=10;
+T=0.1;
 kB=1;%1.380649*10^(-23);
 beta=1.0/(T);
 
@@ -70,7 +99,7 @@ disp(pTot)
 
 hold on;
 for k=1:n_part
-    h(k)=histogram(B(:,k),'Normalization','pdf');
+    h(k)=histogram(B(:,k),101,'Normalization','pdf');
 end
 
 figure

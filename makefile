@@ -15,25 +15,31 @@ CXXFLAGS += -g #                    # pour debugger
 LIB=LIB/
 SRC=SRC/
 
-all: main
+all: main2 #metropolis #main
 
-$(LIB)main.o: $(SRC)main.cc $(SRC)ConfigFile.h $(SRC)ConfigFile.tpp
+#$(LIB)main.o : $(SRC)main.cc $(SRC)ConfigFile.tcc $(SRC)ConfigFile.h
+#	$(CC) $(CXXFLAGS) -c -o $@ $<
+
+$(LIB)main2.o : $(SRC)main2.cc
 	$(CC) $(CXXFLAGS) -c -o $@ $<
 
-#$(LIB)Vecteur.o: $(SRC)Vecteur.cc $(SRC)Vecteur.h $(SRC)Erreur.h
-#	$(CC) $(CXXFLAGS) -c -o $@ $<
-#
-#$(LIB)Systeme.o : $(SRC)Systeme.cc $(SRC)Systeme.h $(SRC)Vecteur.h $(SRC)Erreur.h
-#	$(CC) $(CXXFLAGS) -c -o $@ $<
-#
-#$(LIB)Exercice4.o : $(SRC)Exercice4.cc $(SRC)Systeme.h $(SRC)Vecteur.h $(SRC)Erreur.h
-#	$(CC) $(CXXFLAGS) -c -o $@ $<
-#
-#$(LIB)performance.o : $(SRC)performance.cc
+#$(LIB)ConfigFile.o : $(SRC)ConfigFile.tcc $(SRC)ConfigFile.h
 #	$(CC) $(CXXFLAGS) -c -o $@ $<
 
-#Exercice4: $(LIB)Exercice4.o $(LIB)Systeme.o $(LIB)Vecteur.o $(LIB)Erreur.o
-#	$(CC) $(CXXFLAGS) $(LIB)Exercice4.o $(LIB)Systeme.o $(LIB)Vecteur.o $(LIB)Erreur.o -o Exercice4
+#$(LIB)potential.o : $(SRC)potential.cc $(SRC)potential.h $(SRC)instance.h
+#	$(CC) $(CXXFLAGS) -c -o $@ $<
 
-main: $(LIB)main.o
-	$(CC) $(CXXFLAGS) $(LIB)main.o -o main
+#$(LIB)system.o : $(SRC)system.cc $(SRC)system.h $(SRC)potential.h $(SRC)instance.h #$(SRC)ConfigFile.h
+#	$(CC) $(CXXFLAGS) -c -o $@ $<
+
+#$(LIB)metropolis.o : $(SRC)metropolis.cc $(SRC)potential.h $(SRC)system.h $(SRC)instance.h #$(SRC)ConfigFile.h
+#	$(CC) $(CXXFLAGS) -c -o $@ $<
+
+#metropolis: $(LIB)metropolis.o #$(LIB)system.o $(LIB)potential.o
+#	$(CC) $(CXXFLAGS) $(LIB)metropolis.o $(LIB)system.o $(LIB)potential.o -o metropolis
+
+#main: $(LIB)main.o
+#	$(CC) $(CXXFLAGS) $(LIB)main.o -o main
+
+main2: $(LIB)main2.o
+	$(CC) $(CXXFLAGS) $(LIB)main2.o -o main2

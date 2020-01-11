@@ -1,28 +1,28 @@
 % Physical parameters
-N_part		= 2
-beta			= 20
+N_part		= 3
+beta			= 100
 mass			= 1
 frequency	= 1
 
 % At the beginning:
 pos_min		= -10
-pos_max		= 10
+pos_max		= +10
 
 % Numerical parameters
-N_slices		= 10
-h				= 8
+N_slices		= 50
+h				= 10
 idrate		= 0.5
-N_sweeps		= 30
-n_stride		= 1
+N_sweeps		= 20000
+n_stride		= 2
 
-output = output
+output = output2
 
 
 % Potentials (harmonic, double or square)
-type_V = harmonic
+type_V = double
 
 omega = 1  %harmonic
-x0 = 1 %double
-V0 = 1 %double %square
+x0 = 3 %double
+V0 = 0.5 %double %square
 xc = 0 %square
 L = 2 %square
