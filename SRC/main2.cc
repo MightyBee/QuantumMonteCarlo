@@ -4,6 +4,7 @@
 #include <string>
 #include <random>
 #include <ctime>
+#include <cmath>
 #include "ConfigFile.tcc"
 using namespace std;
 
@@ -23,7 +24,9 @@ using namespace std;
 //############################## HEADERS ##############################
 
 // Generate a random (uniform) double between 'min' and 'max'
-double randomDouble(const double& min, const double& max);
+double randomDouble(const double& min, const double& max, const bool& closed=true);
+// Generate a random double from a normal Cauchy distribution
+double CauchyDistribution();
 
 // ???
 double potentialAction(const double& m, const double& omega, const vector<double>& path, const double& displacement = 0.0);
@@ -37,18 +40,25 @@ double dV(const double& x);	// V'(x)
 //double diff_QLagrangian(const vector<vector<double>>& pos, const double& d_tau, const unsigned int& m, const unsigned int& n, const double& new_pos);
 
 
-// Abstract class for potential
-class Potential {
+// Abstract class for external potential
+class Potential_ext {
 public:
 	// pure virtual method => abstract class
 	virtual double operator()(const double& x) const = 0; // return V at point x
 };
 
 
-// Class for a harmonic potential
-class Potential_harm: public Potential {
+// Class for a null potential
+class PotExt_null: public Potential_ext {
 public:
-	Potential_harm(const ConfigFile& configFile);
+	double operator()(const double& x) const {return 0.0;}
+};
+
+
+// Class for a harmonic potential
+class PotExt_harm: public Potential_ext {
+public:
+	PotExt_harm(const ConfigFile& configFile);
 	double operator()(const double& x) const;
 private:
   double m, omega2;
@@ -56,9 +66,9 @@ private:
 
 
 // Class for a double well potential
-class Potential_double: public Potential {
+class PotExt_double: public Potential_ext {
 public:
-	Potential_double(const ConfigFile& configFile);
+	PotExt_double(const ConfigFile& configFile);
 	double operator()(const double& x) const;
 private:
 	double V0, x0;
@@ -66,12 +76,37 @@ private:
 
 
 // Class for a square potential (barrier for V0>0 and well for V0<0)
-class Potential_square: public Potential {
+class PotExt_square: public Potential_ext {
 public:
-	Potential_square(const ConfigFile& configFile);
+	PotExt_square(const ConfigFile& configFile);
 	double operator()(const double& x) const;
 private:
 	double V0, xc, L;
+};
+
+
+// Abstract class for internal potential
+class Potential_int {
+public:
+	// pure virtual method => abstract class
+	virtual double operator()(const double& x1, const double& x2) const = 0; // return V at point x
+};
+
+
+// Class for a null internal potential (no interactions between particles)
+class PotInt_null: public Potential_int {
+public:
+	double operator()(const double& x1, const double& x2) const {return 0.0;}
+};
+
+
+// Class for a harmonic potential between two particles
+class PotInt_harm: public Potential_int {
+public:
+	PotInt_harm(const ConfigFile& configFile);
+	double operator()(const double& x1, const double& x2) const;
+private:
+	double k, l0;
 };
 
 
@@ -85,6 +120,7 @@ public:
 	ostream& write(ostream& output) const;
 	double kinetic(const int& particle, const int& bead, const int& bead_pm,
 		 				const double& displacement=0.0) const;
+	bool metropolisAcceptance();
 	bool localMove(const double& h);
 	bool globalDisplacement(const double& h);
 	bool bissection(const double& h);
@@ -97,7 +133,8 @@ private:
 	double d_tau;
 	double mass;
 	double omega;
-	Potential* ptr_V;
+	Potential_ext* ptr_Vext;
+	Potential_int* ptr_Vint;
 	vector<vector<double>> table;
 	// utilitary variables
 	unsigned int mm, mm_plu, mm_min; // mm : time slice randomly selected during each iteration, mm_plu=mm+1, mm_min=mm-1;
@@ -107,6 +144,13 @@ private:
 };
 
 ostream& operator<<(ostream& output, const System& s);
+
+
+
+
+//################################################################################################//
+//############################################  MAIN  ############################################//
+//################################################################################################//
 
 
 int main(int argc, char* argv[]){
@@ -198,50 +242,70 @@ int main(int argc, char* argv[]){
 	return 0;
 }
 
-//########################### class 'Potential' methods DEFINITIONS #############################
+
+//################################################################################################//
+//#########################################  END OF MAIN  ########################################//
+//################################################################################################//
 
 
-//##### Potential_harm ######
 
-Potential_harm::Potential_harm(const ConfigFile& configFile) :
-	Potential(),
+//########################### class 'Potential_ext' methods DEFINITIONS #############################
+
+
+//##### PotExt_harm ######
+
+PotExt_harm::PotExt_harm(const ConfigFile& configFile) :
+	Potential_ext(),
 	m(configFile.get<double>("mass")),
 	omega2(pow(configFile.get<double>("omega"),2))
 	{}
 
-double Potential_harm::operator()(const double& x) const {
+double PotExt_harm::operator()(const double& x) const {
 	return m*omega2*x*x;
 }
 
 
-//##### Potential_double ######
+//##### PotExt_double ######
 
-Potential_double::Potential_double(const ConfigFile& configFile) :
-	Potential(),
+PotExt_double::PotExt_double(const ConfigFile& configFile) :
+	Potential_ext(),
 	V0(configFile.get<double>("V0")),
 	x0(configFile.get<double>("x0"))
 	{}
 
-double Potential_double::operator()(const double& x) const {
+double PotExt_double::operator()(const double& x) const {
 	return V0*pow(pow(x/x0,2)-1,2);
 }
 
 
-//##### Potential_harm ######
+//##### PotExt_harm ######
 
-Potential_square::Potential_square(const ConfigFile& configFile) :
-	Potential(),
+PotExt_square::PotExt_square(const ConfigFile& configFile) :
+	Potential_ext(),
 	V0(configFile.get<double>("V0")),
 	xc(configFile.get<double>("xc")),
 	L(configFile.get<double>("L"))
 	{}
 
-double Potential_square::operator()(const double& x) const {
+double PotExt_square::operator()(const double& x) const {
 	if(x<xc-0.5*L || x>xc+0.5*L){
 		return 0;
 	}else{
 		return V0;
 	}
+}
+
+
+//##### Potential_rel ######
+
+PotInt_harm::PotInt_harm(const ConfigFile& configFile) :
+	Potential_int(),
+	k(configFile.get<double>("k")),
+	l0(configFile.get<double>("l0"))
+	{}
+
+double PotInt_harm::operator()(const double& x, const double& x2) const {
+	return 0.5*k*pow(abs(x-x2)-l0,2);
 }
 
 
@@ -258,12 +322,19 @@ System::System(const ConfigFile& configFile) :
 	mm(0), mm_plu(0), mm_min(0), nn(0),
 	dis(0.0), s_old(0.0), s_new(0.0)
 	{
-		string type_V(configFile.get<string>("type_V"));
-		if(type_V=="harmonic") ptr_V = new Potential_harm(configFile);
-		else if(type_V=="double") ptr_V = new Potential_double(configFile);
-		else if(type_V=="square") ptr_V = new Potential_square(configFile);
+		string V_ext(configFile.get<string>("V_ext"));
+		if(V_ext=="null") ptr_Vext = new PotExt_null();
+		else if(V_ext=="harmonic") ptr_Vext = new PotExt_harm(configFile);
+		else if(V_ext=="double") ptr_Vext = new PotExt_double(configFile);
+		else if(V_ext=="square") ptr_Vext = new PotExt_square(configFile);
 		else{
-			cerr << "Please choose between ""harmonic"", ""double"" or ""square"" for ""type_V""." << endl;
+			cerr << "Please choose between ""null"", ""harmonic"", ""double"" or ""square"" for ""V_ext""." << endl;
+		}
+		string V_int(configFile.get<string>("V_int"));
+		if(V_int=="null") ptr_Vint = new PotInt_null();
+		else if(V_int=="harmonic") ptr_Vint = new PotInt_harm(configFile);
+		else{
+			cerr << "Please choose between ""null"", ""harmonic"" for ""V_int""." << endl;
 		}
 	}
 
@@ -293,22 +364,37 @@ double System::kinetic(const int& particle, const int& bead, const int& bead_pm,
 }
 
 
+
+bool System::metropolisAcceptance(){
+	return (randomDouble(0,1) <= exp(-d_tau * (s_new - s_old)));
+}
+
+
 bool System::localMove(const double& h){
 	mm = rand()%N_slices; // random integer between 0 and N_slices-1
 	mm_min = (mm + N_slices - 1)%N_slices; // mm-1 with periodic boundary condition
 	mm_plu = (mm + 1)%N_slices; // mm+1 with periodic boundary condition
 	nn = rand()%N_part; // random integer between 0 and N_part-1
 
-	dis = h * randomDouble(-1, 1); // proposed new position
+	//dis = h * randomDouble(-1, 1); // proposed new position
+	dis = h * CauchyDistribution(); // proposed new position (Cauchy distribution)
 
 	// as we take the difference of new and old action S_new-S_old, we can
 	// consider only the part of the action that is affected by the proposed new position
 	s_old = kinetic(nn,mm,mm_plu) + kinetic(nn,mm,mm_min)
-			+ (*ptr_V)(table[nn][mm]);
+			+ (*ptr_Vext)(table[nn][mm]);
 	s_new = kinetic(nn,mm,mm_plu,dis) + kinetic(nn,mm,mm_min,dis)
-			+ (*ptr_V)(table[nn][mm]+dis);
+			+ (*ptr_Vext)(table[nn][mm]+dis);
+	if(N_part>1){
+		for(size_t i(0); i<N_part; i++){
+			if(i!=nn){
+				s_old+=(*ptr_Vint)(table[i][mm],table[nn][mm]);
+				s_new+=(*ptr_Vint)(table[i][mm],table[nn][mm]+dis);
+			}
+		}
+	}
 
-	if(randomDouble(0,1) <= exp(-d_tau * (s_new - s_old))){ // metropolis acceptance
+	if(metropolisAcceptance()){ // metropolis acceptance
 		table[nn][mm] += dis;		// update position with new one
 		return true;
 	}else{
@@ -319,17 +405,26 @@ bool System::localMove(const double& h){
 
 bool System::globalDisplacement(const double& h){
 	nn = rand()%N_part; // random integer between 0 and N_part-1
-	dis = h * randomDouble(-1,1); // proposed displacement of the 'entire' particle nn
+	//dis = h * randomDouble(-1,1); // proposed displacement of the 'entire' particle nn
+	dis = h * CauchyDistribution();  // proposed displacement of the 'entire' particle nn
 
 	// no relative move between the time slices --> only the potential action changes
 	s_old=0.0;
 	s_new=0.0;
-	for(const auto& pos : table[nn]){
-		s_old+=(*ptr_V)(pos);
-		s_new+=(*ptr_V)(pos+dis);
+	for(size_t j(0); j<N_slices; j++){
+		s_old+=(*ptr_Vext)(table[nn][j]);
+		s_new+=(*ptr_Vext)(table[nn][j]+dis);
+		if(N_part>1){
+			for(size_t i(0); i<N_part; i++){
+				if(i!=nn){
+					s_old+=(*ptr_Vint)(table[i][j],table[nn][j]);
+					s_new+=(*ptr_Vint)(table[i][j],table[nn][j]+dis);
+				}
+			}
+		}
 	}
 
-	if(randomDouble(0,1)<exp(-d_tau * (s_new - s_old))){ // metropolis acceptance
+	if(metropolisAcceptance()){ // metropolis acceptance
 		for(auto& pos : table[nn]){
 			pos+=dis;
 		}
@@ -345,20 +440,31 @@ bool System::bissection(const double& h){
 	mm = rand()%N_slices; // random integer between 0 and N_slices-1
 	mm_min = (mm + N_slices - 1)%N_slices; // mm-1 with periodic boundary condition
 	nn = rand()%N_part; // random integer between 0 and N_part-1
-	dis = h * randomDouble(-1,1); // proposed displacement of the 'entire' particle nn
+	//dis = h * randomDouble(-1,1); // proposed displacement
+	dis = h * CauchyDistribution(); // proposed displacement
 	size_t l(N_slices/3);
 
 	// no relative move between the time slices --> only the potential action changes
 	s_old=0.0;
 	s_new=0.0;
-	for(size_t i(0); i<l; i++){
-		s_old+=(*ptr_V)(table[nn][(mm+i)%N_slices]);
-		s_new+=(*ptr_V)(table[nn][(mm+i)%N_slices]+dis);
+	int ind_j(0);
+	for(size_t j(0); j<l; j++){
+		ind_j=(mm+j)%N_slices;
+		s_old+=(*ptr_Vext)(table[nn][ind_j]);
+		s_new+=(*ptr_Vext)(table[nn][ind_j]+dis);
+		if(N_part>1){
+			for(size_t i(0); i<N_part; i++){
+				if(i!=nn){
+					s_old+=(*ptr_Vint)(table[i][ind_j],table[nn][ind_j]);
+					s_new+=(*ptr_Vint)(table[i][ind_j],table[nn][ind_j]+dis);
+				}
+			}
+		}
 	}
 	s_old += kinetic(nn,mm,mm_min)     + kinetic(nn,(mm+l-1)%N_slices,(mm+l)%N_slices);
 	s_new += kinetic(nn,mm,mm_min,dis) + kinetic(nn,(mm+l-1)%N_slices,(mm+l)%N_slices,dis);
 
-	if(randomDouble(0,1)<exp(-d_tau * (s_new - s_old))){ // metropolis acceptance
+	if(metropolisAcceptance()){ // metropolis acceptance
 		for(size_t i(0); i<l; i++){
 			table[nn][(mm+i)%N_slices]+=dis;
 		}
@@ -376,6 +482,11 @@ ostream& operator<<(ostream& output, const System& s){
 
 //########################### FUNCTION DEFINITIONS #############################
 
-double randomDouble(const double& min, const double& max){
-	return (min + (max-min) * (double)rand()/RAND_MAX);
+double randomDouble(const double& min, const double& max, const bool& closed){
+	if(closed) return (min + (max-min) * (double)rand()/RAND_MAX);
+	else return (min + (max-min) * ((double)rand()+0.5)/(RAND_MAX+1.0));
+}
+
+double CauchyDistribution(){
+	return tan(M_PI*(randomDouble(-0.5,0.5,false)));
 }

@@ -4,7 +4,7 @@ set(0,'defaultTextInterpreter','latex');
 set(0,'defaultLegendInterpreter','latex');
 
 %% loading data %%
-n_part=3;
+n_part=2;
 data=load("output2.out");
 n_MCS=size(data,1);
 n_slices=size(data,2)/n_part;
