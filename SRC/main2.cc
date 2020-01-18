@@ -1,4 +1,5 @@
 #include <vector>
+#include <array>
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -123,7 +124,7 @@ public:
 	bool metropolisAcceptance();
 	bool localMove(const double& h);
 	bool globalDisplacement(const double& h);
-	bool bissection(const double& h);
+	bool bissection(const double& h, const double& sRel);
 
 private:
 	// physical parameters
@@ -131,7 +132,7 @@ private:
 	unsigned int N_slices;
 	double beta;
 	double d_tau;
-	double mass;
+	vector<double> mass;
 	double omega;
 	Potential_ext* ptr_Vext;
 	Potential_int* ptr_Vint;
@@ -180,12 +181,18 @@ int main(int argc, char* argv[]){
 	double pos_min(configFile.get<double>("pos_min"));							// initial minimum position
 	double pos_max(configFile.get<double>("pos_max"));							// initial maximal position
 	double h(configFile.get<double>("h"));											// maximum uniform displacement of a point in the path
-	double accrate(0.0);																	// ???
-	double idrate(configFile.get<double>("idrate"));							// ???
+	double p_loc(configFile.get<double>("p_local"));
+	double p_dsp(configFile.get<double>("p_displacement"));
+	double p_bis(configFile.get<double>("p_bissection"));
+	double s_bis(configFile.get<double>("s_bissection"));
+	array<unsigned int,3> NbTries({0,0,0});												// numbers of tries for [0] local move [1] displacement and [2] bissection
+	array<double,3>		 accrate({0.0,0.0,0.0});												// acceptance rates for the three moves
+	//double idrate(configFile.get<double>("idrate"));							// ideal acceptance rate
 	size_t n_stride(configFile.get<size_t>("n_stride"));						// output is written every n_stride iterations
 	//Output file
-	string output(configFile.get<string>("output")+".out"); 					// output file
-	ofstream fichier_output(output.c_str());
+	string output(configFile.get<string>("output"));		 					// output file
+	string output_pos(output+"_pos.out");
+	ofstream fichier_output(output_pos.c_str());
 	fichier_output.precision(15);														// Precision
 
 	System s(configFile);
@@ -199,26 +206,47 @@ int main(int argc, char* argv[]){
 		//For every particle...
 		// ??? should we directly make one 'for i=0:N_slices*N_part' ???
 		for(size_t j(0); j < s.nb_part(); j++){
-			for(size_t k(0); k < s.nb_slices(); k++){
-				if(s.localMove(h)){
-					accrate += 1.0/s.nb_slices();
+			// local move
+			if(NbTries[0]*1.0/((i*s.nb_part()+j+1)*s.nb_slices()) < p_loc){
+				for(size_t k(0); k < s.nb_slices(); k++){
+					NbTries[0]++;
+					if(s.localMove(h)){
+						accrate[0]++;
+					}
 				}
 			}
-			s.globalDisplacement(h);
-			s.bissection(h);
-			//if(i>500) h*=accrate/idrate;
-			//cout << accrate << " " << h << endl;
-			accrate = 0.0;
+			// global displacement
+			if(NbTries[1]*1.0/(i*s.nb_part()+j+1) < p_dsp){
+				NbTries[1]++;
+				if(s.globalDisplacement(h)){
+					accrate[1]++;
+				}
+			}
+			// bissection
+			if(NbTries[2]*1.0/(i*s.nb_part()+j+1) < p_bis){
+				NbTries[2]++;
+				if(s.bissection(h, s_bis)){
+					accrate[2]++;
+				}
+			}
 		}
-
-
-
 		//############################## OUTPUT IN FILE ##############################
 		if((i%n_stride) == 0){
 			fichier_output << s << endl;
 		}
 	}
 	fichier_output.close();
+
+	string output_stat(output+"_stat.out");
+	fichier_output.open(output_stat.c_str());
+	fichier_output.precision(15);
+	for(size_t i(0); i<accrate.size(); i++){
+		accrate[i]/=NbTries[i];
+		fichier_output << NbTries[i] << " " << accrate[i] << endl;
+	}
+	fichier_output.close();
+
+
 
 
 
@@ -316,12 +344,17 @@ System::System(const ConfigFile& configFile) :
 	N_slices(configFile.get<unsigned int>("N_slices")),
 	beta(configFile.get<double>("beta")),
 	d_tau(beta/N_slices),
-	mass(configFile.get<double>("mass")),
+	mass(N_part, configFile.get<double>("mass")),
 	omega(configFile.get<double>("frequency")),
 	table(N_part, vector<double>(N_slices, 0.0)),
 	mm(0), mm_plu(0), mm_min(0), nn(0),
 	dis(0.0), s_old(0.0), s_new(0.0)
 	{
+		char buff[5];
+		for(int i(0); i<N_part; i++){
+			sprintf(buff,"m%d",i+1);
+			mass[i]=configFile.get<double>(buff);
+		}
 		string V_ext(configFile.get<string>("V_ext"));
 		if(V_ext=="null") ptr_Vext = new PotExt_null();
 		else if(V_ext=="harmonic") ptr_Vext = new PotExt_harm(configFile);
@@ -360,7 +393,7 @@ ostream& System::write(ostream& output) const{
 
 double System::kinetic(const int& particle, const int& bead, const int& bead_pm,
 								const double& displacement) const{
-	return 0.5*mass*pow(((table[particle][bead]+displacement)-table[particle][bead_pm])/d_tau,2);
+	return 0.5*mass[particle]*pow(((table[particle][bead]+displacement)-table[particle][bead_pm])/d_tau,2);
 }
 
 
@@ -436,13 +469,13 @@ bool System::globalDisplacement(const double& h){
 
 
 
-bool System::bissection(const double& h){
+bool System::bissection(const double& h, const double& sRel){
 	mm = rand()%N_slices; // random integer between 0 and N_slices-1
 	mm_min = (mm + N_slices - 1)%N_slices; // mm-1 with periodic boundary condition
 	nn = rand()%N_part; // random integer between 0 and N_part-1
 	//dis = h * randomDouble(-1,1); // proposed displacement
 	dis = h * CauchyDistribution(); // proposed displacement
-	size_t l(N_slices/3);
+	size_t l(N_slices*sRel);
 
 	// no relative move between the time slices --> only the potential action changes
 	s_old=0.0;

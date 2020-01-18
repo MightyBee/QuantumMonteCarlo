@@ -5,7 +5,7 @@ set(0,'defaultLegendInterpreter','latex');
 
 %% loading data %%
 n_part=2;
-data=load("output2.out");
+data=load("output2_pos.out");
 n_MCS=size(data,1);
 n_slices=size(data,2)/n_part;
 A=zeros(n_MCS,n_slices,n_part);
