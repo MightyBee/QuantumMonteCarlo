@@ -1,3 +1,4 @@
+#define _USE_MATH_DEFINES
 #include <vector>
 #include <array>
 #include <iostream>
@@ -16,8 +17,6 @@ using namespace std;
 	- we consider boundary conditions, x_0 = x_(N_slices)
 	- hence we only consider x_0, x_1, ... , x_(N_slices-1)	, N_slices points
 	- to get the "full picture" simply add one more point, equal to x_0
-
-	- units are s.t. hbar = c = 1
 */
 
 
@@ -126,12 +125,16 @@ public:
 	bool globalDisplacement(const double& h);
 	bool bissection(const double& h, const double& sRel);
 
+	void measure_energy();
+	void average_energy();
+
 private:
 	// physical parameters
 	unsigned int N_part;
 	unsigned int N_slices;
 	double beta;
 	double d_tau;
+	int q;
 	vector<double> mass;
 	double omega;
 	Potential_ext* ptr_Vext;
@@ -142,11 +145,43 @@ private:
 	unsigned int nn; // particle randomly selected during each iteration
 	double dis; // displacement proposed
 	double s_old, s_new; // part of the action that is changed with the new position proposed (old and new values respectively)
+	vector<double> energies_psi;
+	vector<double> energies_theo;
 };
 
 ostream& operator<<(ostream& output, const System& s);
 
+void System::measure_energy(){
+	double temp_energy1(0), temp_energy2(0);
+	for(size_t i(0); i < table[0].size(); i++){
+		temp_energy1 += pow(table[0][i], 2);
+	}
+	for(size_t i(0); i < table[0].size(); i++){
+		temp_energy2 += (pow(table[0][i-1], 2) + pow(table[0][i], 2));
+	}
+	energies_psi.push_back(pow(omega, 2) * mass[0] * temp_energy1/N_slices);
+	energies_theo.push_back(0.5 * pow(omega, 2) * mass[0] * temp_energy2/N_slices);
+}
 
+void System::average_energy(){
+	double temp_energy(0);
+
+	cout << "Finally, with d_tau = " << d_tau << " and m = " << mass[0] << endl;
+
+	for(size_t i(0); i < energies_psi.size(); i++){		// !!!!! at the beginning i=1 and not i=0
+		temp_energy += energies_psi[i];
+	}
+
+	cout << "PSI: " << (temp_energy/energies_psi.size() * pow(10, -20)) << endl;
+
+	temp_energy = 0;
+	for(size_t i(0); i < energies_theo.size(); i++){		// !!!!! at the beginning i=1 and not i=0
+		temp_energy += energies_theo[i];
+	}
+
+	cout << "Theo: " << (temp_energy/energies_theo.size() * pow(10, -20)) << endl;
+	cout << "Theory: " << (omega/d_tau * 0.5 * 1.0545718 * pow(10, q-34)) << endl;
+}
 
 
 //################################################################################################//
@@ -178,6 +213,7 @@ int main(int argc, char* argv[]){
 	//############################## READ PARAMETERS ##############################
 
 	unsigned int N_sweeps(configFile.get<unsigned int>("N_sweeps"));		// number of Monte Carlo iterations (aka sweeps)
+	unsigned int N_thermalisation(configFile.get<unsigned int>("N_thermalisation"));	//How many steps should we wait before measuring stuff
 	double pos_min(configFile.get<double>("pos_min"));							// initial minimum position
 	double pos_max(configFile.get<double>("pos_max"));							// initial maximal position
 	double h(configFile.get<double>("h"));											// maximum uniform displacement of a point in the path
@@ -185,8 +221,8 @@ int main(int argc, char* argv[]){
 	double p_dsp(configFile.get<double>("p_displacement"));
 	double p_bis(configFile.get<double>("p_bissection"));
 	double s_bis(configFile.get<double>("s_bissection"));
-	array<unsigned int,3> NbTries({0,0,0});												// numbers of tries for [0] local move [1] displacement and [2] bissection
-	array<double,3>		 accrate({0.0,0.0,0.0});												// acceptance rates for the three moves
+	array<unsigned int,3> NbTries({0,0,0});										// numbers of tries for [0] local move [1] displacement and [2] bissection
+	array<double,3>		 accrate({0.0,0.0,0.0});								// acceptance rates for the three moves
 	//double idrate(configFile.get<double>("idrate"));							// ideal acceptance rate
 	size_t n_stride(configFile.get<size_t>("n_stride"));						// output is written every n_stride iterations
 	//Output file
@@ -233,10 +269,16 @@ int main(int argc, char* argv[]){
 		//############################## OUTPUT IN FILE ##############################
 		if((i%n_stride) == 0){
 			fichier_output << s << endl;
+
+			//Energy measurement
+			if(i >= N_thermalisation){
+				s.measure_energy();
+			}
 		}
 	}
 	fichier_output.close();
 
+	//Statistics
 	string output_stat(output+"_stat.out");
 	fichier_output.open(output_stat.c_str());
 	fichier_output.precision(15);
@@ -246,7 +288,8 @@ int main(int argc, char* argv[]){
 	}
 	fichier_output.close();
 
-
+	//Energy
+	s.average_energy();
 
 
 
@@ -289,7 +332,7 @@ PotExt_harm::PotExt_harm(const ConfigFile& configFile) :
 	{}
 
 double PotExt_harm::operator()(const double& x) const {
-	return m*omega2*x*x;
+	return 0.5 * m * pow(x, 2) * omega2;
 }
 
 
@@ -306,7 +349,7 @@ double PotExt_double::operator()(const double& x) const {
 }
 
 
-//##### PotExt_harm ######
+//##### PotExt_square ######
 
 PotExt_square::PotExt_square(const ConfigFile& configFile) :
 	Potential_ext(),
@@ -344,14 +387,15 @@ System::System(const ConfigFile& configFile) :
 	N_slices(configFile.get<unsigned int>("N_slices")),
 	beta(configFile.get<double>("beta")),
 	d_tau(beta/N_slices),
+	q(configFile.get<int>("q")),
 	mass(N_part, configFile.get<double>("mass")),
-	omega(configFile.get<double>("frequency")),
+	omega(configFile.get<double>("omega")),
 	table(N_part, vector<double>(N_slices, 0.0)),
 	mm(0), mm_plu(0), mm_min(0), nn(0),
 	dis(0.0), s_old(0.0), s_new(0.0)
 	{
 		char buff[5];
-		for(int i(0); i<N_part; i++){
+		for(size_t i(0); i<N_part; i++){
 			sprintf(buff,"m%d",i+1);
 			mass[i]=configFile.get<double>(buff);
 		}
@@ -391,15 +435,18 @@ ostream& System::write(ostream& output) const{
 }
 
 
-double System::kinetic(const int& particle, const int& bead, const int& bead_pm,
-								const double& displacement) const{
-	return 0.5*mass[particle]*pow(((table[particle][bead]+displacement)-table[particle][bead_pm])/d_tau,2);
+double System::kinetic(const int& particle, const int& bead, const int& bead_pm, const double& displacement) const{
+	//return 0.5*mass[particle]*pow(((table[particle][bead]+displacement)-table[particle][bead_pm])/d_tau,2);
+	return 0.5*mass[particle]*pow((table[particle][bead]+displacement)-table[particle][bead_pm],2);
 }
 
 
 
 bool System::metropolisAcceptance(){
-	return (randomDouble(0,1) <= exp(-d_tau * (s_new - s_old)));
+	//return (randomDouble(0,1) <= exp(-(d_tau * pow(10, -20-q))* (s_new - s_old)));
+	//cout << (-(d_tau) * (s_new - s_old)) << endl;
+	//return (randomDouble(0,1) <= exp(-(d_tau) * (s_new - s_old)));
+	return (randomDouble(0,1) <= exp(-(s_new - s_old)));
 }
 
 
@@ -409,8 +456,8 @@ bool System::localMove(const double& h){
 	mm_plu = (mm + 1)%N_slices; // mm+1 with periodic boundary condition
 	nn = rand()%N_part; // random integer between 0 and N_part-1
 
-	//dis = h * randomDouble(-1, 1); // proposed new position
-	dis = h * CauchyDistribution(); // proposed new position (Cauchy distribution)
+	dis = h * randomDouble(-1, 1); // proposed new position
+	//dis = h * CauchyDistribution(); // proposed new position (Cauchy distribution)
 
 	// as we take the difference of new and old action S_new-S_old, we can
 	// consider only the part of the action that is affected by the proposed new position
