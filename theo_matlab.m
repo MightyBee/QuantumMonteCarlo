@@ -1,5 +1,6 @@
-%data = load("output.out");
+%data = load("output2_pos.out");
 
+%{
 norms = zeros(size(data,1),1);
 %norms = data(:,1);
 
@@ -10,6 +11,7 @@ end;
 
 figure
 histogram(norms,100,'Normalization','probability');
+%}
 
 %{
 figure
@@ -26,7 +28,7 @@ grid on
 closw=waitforbuttonpress;
 
 for i=2:size(data,1)
-    pause(.000001)
+    pause(.1)
     if ~ishandle(t)
         break % Arrete l'animation si la fenetre est fermee
     end
@@ -36,9 +38,8 @@ end
 
 
 
-%{
 figure
-t=histogram(data(1,:),25,'Normalization','probability');
+t=histogram(data(1,:),100,'Normalization','probability');
 ylim([0 0.2])
 
 closw=waitforbuttonpress;
@@ -51,4 +52,4 @@ for i=2:5:size(data,1)
     end
     set(t,'Data',data(i,:))
 end
-%}
+
