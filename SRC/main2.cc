@@ -29,13 +29,6 @@ double randomDouble(const double& min, const double& max, const bool& closed=tru
 // Generate a random double from a normal Cauchy distribution
 double CauchyDistribution();
 
-// ???
-double potentialAction(const double& m, const double& omega, const vector<double>& path, const double& displacement = 0.0);
-double bissectionAction(const double& m, const double& omega, const double& d_tau, const size_t& start, const vector<double>& path, const double& displacement = 0.0);
-
-// Potential function
-double V(const double& x);		// V(x)
-double dV(const double& x);	// V'(x)
 
 //double QLagrangian(const vector<vector<double>>& pos, const double& d_tau);
 //double diff_QLagrangian(const vector<vector<double>>& pos, const double& d_tau, const unsigned int& m, const unsigned int& n, const double& new_pos);
@@ -332,8 +325,8 @@ PotInt_harm::PotInt_harm(const ConfigFile& configFile) :
 	l0(configFile.get<double>("l0"))
 	{}
 
-double PotInt_harm::operator()(const double& x, const double& x2) const {
-	return 0.5*k*pow(abs(x-x2)-l0,2);
+double PotInt_harm::operator()(const double& x1, const double& x2) const {
+	return 0.5*k*pow(abs(x2-x1)-l0,2);
 }
 
 
@@ -344,16 +337,14 @@ System::System(const ConfigFile& configFile) :
 	N_slices(configFile.get<unsigned int>("N_slices")),
 	beta(configFile.get<double>("beta")),
 	d_tau(beta/N_slices),
-	mass(N_part, configFile.get<double>("mass")),
+	mass(N_part, 0),
 	omega(configFile.get<double>("frequency")),
 	table(N_part, vector<double>(N_slices, 0.0)),
 	mm(0), mm_plu(0), mm_min(0), nn(0),
 	dis(0.0), s_old(0.0), s_new(0.0)
 	{
-		char buff[5];
 		for(int i(0); i<N_part; i++){
-			sprintf(buff,"m%d",i+1);
-			mass[i]=configFile.get<double>(buff);
+			mass[i]=configFile.get<double>("m"+to_string(i+1));
 		}
 		string V_ext(configFile.get<string>("V_ext"));
 		if(V_ext=="null") ptr_Vext = new PotExt_null();
