@@ -2,6 +2,8 @@
 #include <random>
 #include <ctime>
 #include <cmath>
+#include <iostream>
+#include <fstream>
 using namespace std;
 
 
@@ -13,11 +15,14 @@ int main(int argc, char* argv[]){
 
 	srand(time(0));
 
-	int N_MCS(10000), N_tau(120);
+	int N_MCS(10000), N_tau(200);
 	vector<double> path(N_tau);
-	double h(1.0), m(1.0), w(1.0);
+	double tau_final(120.0);
+	double d_tau(tau_final/N_tau);
+	double h(1.0), m(1*d_tau), w(1.0*d_tau);
+	double accrate(0.0);
 	int tau, tau_min, tau_plus;
-	double x_new, s_old, s_old;
+	double x_new, s_old, s_new;
 	vector<double> randm(2*N_tau);
 	vector<int> index(N_tau);
 
@@ -25,30 +30,42 @@ int main(int argc, char* argv[]){
 	ofstream fichier_output(output_pos.c_str());
 	fichier_output.precision(15);
 
-	for(n size_t(0); n<N_MCS; n++){
-		for(size_t i(0); i<N_tau; i++){
+	cout << m << " " << w << " " << N_tau << endl;
+	for(int n(0); n<N_MCS; n++){
+		accrate=0.0;
+		for(int i(0); i<N_tau; i++){
 			index[i]=rand()%N_tau;
 		}
-		for(size_t i(0); i<2*N_tau; i++){
-			randm[i]=;randomDouble();
+		for(int i(0); i<2*N_tau; i++){
+			randm[i]=randomDouble();
 		}
-		for(size_t i(0); i<N_tau; i++){
+		for(int i(0); i<N_tau; i++){
 			tau=index[i];
 			tau_min=(tau+N_tau-1)%N_tau;
 			tau_plus=(tau+1)%N_tau;
 			x_new=path[tau]+h*randomDouble(-0.5,0.5);
-			s_old=0.5*m*pow(path[tau_plus]-path[tau],2)
-					+ 0.5*m*pow(path[tau]-path[tau_min],2)
+			/* s_old = 0.5*m*pow( (path[tau_plus]-path[tau])/d_tau ,2)
+					+ 0.5*m*pow( (path[tau]-path[tau_min]) /d_tau ,2)
 					+ 0.5*m*w*w*pow(path[tau],2);
-			s_new=0.5*m*pow(path[tau_plus]-x_new,2)
-					+ 0.5*m*pow(x_new-path[tau_min],2)
+			s_new = 0.5*m*pow( (path[tau_plus]-x_new)/d_tau ,2)
+					+ 0.5*m*pow( (x_new-path[tau_min]) /d_tau ,2)
+					+ 0.5*m*w*w*pow(x_new,2);
+			if(randm[N_tau+i] < exp( - d_tau * (s_new-s_old) )){
+			*/
+			s_old = 0.5*m*pow( path[tau_plus]-path[tau] ,2)
+					+ 0.5*m*pow( path[tau]-path[tau_min]  ,2)
+					+ 0.5*m*w*w*pow(path[tau],2);
+			s_new = 0.5*m*pow( path[tau_plus]-x_new ,2)
+					+ 0.5*m*pow( x_new-path[tau_min]  ,2)
 					+ 0.5*m*w*w*pow(x_new,2);
 			if(randm[N_tau+i] < exp(-s_new+s_old)){
 				path[tau]=x_new;
+				accrate+=1.0/N_tau;
 			}
 		}
+		h*=accrate/0.8;
 		for(const auto& el : path){
-			fichier_output << el << " ";
+			fichier_output << el*d_tau << " ";
 		}
 		fichier_output << endl;
 	}

@@ -4,10 +4,10 @@ set(0,'defaultTextInterpreter','latex');
 set(0,'defaultLegendInterpreter','latex');
 
 %% loading data %%
-n_part=2;
-data=load("output2_pos.out");
-n_MCS=size(data,1);
-n_slices=size(data,2)/n_part;
+n_part=1;
+data=load("simple.out");
+n_MCS=size(data,1)
+n_slices=size(data,2)/n_part
 A=zeros(n_MCS,n_slices,n_part);
 B=zeros(n_MCS*n_slices,n_part);
 for k=1:n_part
@@ -16,6 +16,11 @@ for k=1:n_part
         B((1+(l-1)*n_slices):l*n_slices,k)=A(l,:,k);
     end
 end
+
+% G=zeros(n_MCS,n_part);
+% for k=1:n_part
+%     for n=1:n_MCS
+%         for i=
 
 %% imaginary path %%
 %{
@@ -44,20 +49,20 @@ end
 
 %}
 
-fig3=figure('Position',[50,50,650,450]);
-hold on;
-for k=[3001 5001 7000]
-    t(k)=plot([A(k,:,1) A(k,1,1)],[0:1:size(A,2)],'LineWidth',2);
-end
-hold off
-xlim([-3 3])
-xlabel('$\tilde{x}$')
-ylabel('$\tau / \delta \tau$')
-yticks(0:16)
-yticklabels({'0' '' '2' '' '4' '' '6' '' '8' '' '10' '' '12' '' '14' '' '16'})
-xticks(-3:3:3)
-grid on, box on
-print(fig3,'threePaths', '-depsc');
+% fig3=figure('Position',[50,50,650,450]);
+% hold on;
+% for k=[3001 5001 7000]
+%     t(k)=plot([A(k,:,1) A(k,1,1)],[0:1:size(A,2)],'LineWidth',2);
+% end
+% hold off
+% xlim([-3 3])
+% xlabel('$\tilde{x}$')
+% ylabel('$\tau / \delta \tau$')
+% yticks(0:16)
+% yticklabels({'0' '' '2' '' '4' '' '6' '' '8' '' '10' '' '12' '' '14' '' '16'})
+% xticks(-3:3:3)
+% grid on, box on
+% print(fig3,'threePaths', '-depsc');
 
 
 
@@ -67,19 +72,24 @@ print(fig3,'threePaths', '-depsc');
 
 xMin=-10;
 xMax=+10;
-Ninter=100000;
+Ninter=10000;
 X=linspace(xMin,xMax,Ninter+1);
 dx=(xMax-xMin)/Ninter;
+
+m=1;
+w=1;
 
 V=0.1*X.^4-5*X.^2;
 V=0.5*X.^2;
 x0=3;
 V0=0.5;
-V=V0*((X./x0).^2-1).^2;
+% V=V0*((X./x0).^2-1).^2;
 
-T=0.1;
+T=1;
 kB=1;%1.380649*10^(-23);
-beta=1.0/(T);
+beta=120%1.0/(T);
+
+V=0.5*m*w^2*X.^2;
 
 figure
 plot(X,V)
@@ -91,15 +101,15 @@ p=exp(-V*beta)/z;
 figure
 plot(X,p)
 
-pTot=0.5*dx*(p(1)+p(end));
-for i=2:length(p)-1
-    pTot=pTot+dx*p(i);
-end
-disp(pTot)
+% pTot=0.5*dx*(p(1)+p(end));
+% for i=2:length(p)-1
+%     pTot=pTot+dx*p(i);
+% end
+% disp(pTot)
 
 hold on;
 for k=1:n_part
-    h(k)=histogram(B(:,k),101,'Normalization','pdf');
+    h(k)=histogram(B(:,k),51,'Normalization','pdf');
 end
 
 figure
