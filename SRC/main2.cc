@@ -427,8 +427,8 @@ ostream& System::write(ostream& output) const{
 
 
 double System::kinetic(const int& particle, const int& bead, const int& bead_pm, const double& displacement) const{
-	//return 0.5*mass[particle]*pow(((table[particle][bead]+displacement)-table[particle][bead_pm])/d_tau,2);
-	return 0.5*mass[particle]*pow((table[particle][bead]+displacement)-table[particle][bead_pm],2);
+	return 0.5*mass[particle]*pow(((table[particle][bead]+displacement)-table[particle][bead_pm])/d_tau,2);
+	//return 0.5*mass[particle]*pow((table[particle][bead]+displacement)-table[particle][bead_pm],2);
 }
 
 
@@ -436,8 +436,8 @@ double System::kinetic(const int& particle, const int& bead, const int& bead_pm,
 bool System::metropolisAcceptance(){
 	//return (randomDouble(0,1) <= exp(-(d_tau * pow(10, -20-q))* (s_new - s_old)));
 	//cout << (-(d_tau) * (s_new - s_old)) << endl;
-	//return (randomDouble(0,1) <= exp(-(d_tau) * (s_new - s_old)));
-	return (randomDouble(0,1) <= exp(-(s_new - s_old)));
+	return (randomDouble(0,1) <= exp(-(d_tau) * (s_new - s_old)));
+	//return (randomDouble(0,1) <= exp(-(s_new - s_old)));
 }
 
 
@@ -447,8 +447,8 @@ bool System::localMove(const double& h){
 	mm_plu = (mm + 1)%N_slices; // mm+1 with periodic boundary condition
 	nn = rand()%N_part; // random integer between 0 and N_part-1
 
-	dis = h * randomDouble(-1, 1); // proposed new position
-	//dis = h * CauchyDistribution(); // proposed new position (Cauchy distribution)
+	//dis = h * randomDouble(-1, 1); // proposed new position
+	dis = h * CauchyDistribution(); // proposed new position (Cauchy distribution)
 
 	// as we take the difference of new and old action S_new-S_old, we can
 	// consider only the part of the action that is affected by the proposed new position

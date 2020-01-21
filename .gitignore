@@ -23,7 +23,9 @@
 
 # Ajout perso #
 ############
-*performance
+*simple
+*main
+*main2
 *.a
 *.stash
 *.out
