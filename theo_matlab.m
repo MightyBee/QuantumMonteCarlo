@@ -36,17 +36,26 @@ for i=2:size(data,1)
 end
 %}
 
+m = 10;
+w = 1;
+beta = 0.1;
+T = 1/beta;
 
+x = [-1:0.01:1];
+y1 = sqrt(m*w*w/(2*pi*T)) * exp(-m*w*w/(2*T) * x.^2);
+y2 = 0.5 * m * w * w * x.^2;
 
 figure
-t=histogram(data(1,:),100,'Normalization','probability');
-ylim([0 0.2])
+hold on;
+plot(x,y1, "r");
+plot(x,y2, "b");
+t=histogram(data(1,:),200,'Normalization','pdf');
 
 closw=waitforbuttonpress;
 
 
 for i=2:5:size(data,1)
-    pause(.01)
+    pause(0.01)
     if ~ishandle(t)
         break % Arrete l'animation si la fenetre est fermee
     end
