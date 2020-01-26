@@ -121,6 +121,8 @@ public:
 	void measure_energy();
 	void average_energy();
 
+	//vector<int> visits;
+
 private:
 	// physical parameters
 	unsigned int N_part;
@@ -157,23 +159,33 @@ void System::measure_energy(){
 }
 
 void System::average_energy(){
-	double temp_energy(0);
+	ofstream fichier_output;
+	fichier_output.open("energies.out");
+	fichier_output.precision(15);
 
-	cout << "Finally, with d_tau = " << d_tau << " and m = " << mass[0] << endl;
+	double temp_energy(0), temp_error(0);
+
+	cout << "Finally, with d_tau = " << d_tau << endl;
 
 	for(size_t i(0); i < energies_psi.size(); i++){		// !!!!! at the beginning i=1 and not i=0
+		fichier_output << energies_psi[i] << endl;
 		temp_energy += energies_psi[i];
+		temp_error += pow(energies_psi[i], 2);
 	}
+	temp_energy = temp_energy/energies_psi.size();
+	temp_error = sqrt((temp_error/energies_psi.size() - pow(temp_energy, 2))/energies_psi.size());
 
-	cout << "PSI: " << (temp_energy/energies_psi.size() * pow(10, -20)) << endl;
+	cout << "PSI: " << temp_energy << " +- " << temp_error << endl;
 
 	temp_energy = 0;
 	for(size_t i(0); i < energies_theo.size(); i++){		// !!!!! at the beginning i=1 and not i=0
 		temp_energy += energies_theo[i];
 	}
 
-	cout << "Theo: " << (temp_energy/energies_theo.size() * pow(10, -20)) << endl;
-	cout << "Theory: " << (omega/d_tau * 0.5 * 1.0545718 * pow(10, q-34)) << endl;
+	cout << "Theo: " << (temp_energy/energies_theo.size()) << ",e-20" << endl;
+	cout << "Theory: " << (10 * 0.5 * omega * 1.0545718) << ",e-20" << endl;
+
+	fichier_output.close();
 }
 
 
@@ -236,16 +248,16 @@ int main(int argc, char* argv[]){
 		// ??? should we directly make one 'for i=0:N_slices*N_part' ???
 		for(size_t j(0); j < s.nb_part(); j++){
 			// local move
-			if(NbTries[0]*1.0/((i*s.nb_part()+j+1)*s.nb_slices()) < p_loc){
+			//if(NbTries[0]*1.0/((i*s.nb_part()+j+1)*s.nb_slices()) < p_loc){
 				for(size_t k(0); k < s.nb_slices(); k++){
 					NbTries[0]++;
 					if(s.localMove(h)){
 						accrate[0]++;
 					}
 				}
-			}
+			//}
 			// global displacement
-			if(NbTries[1]*1.0/(i*s.nb_part()+j+1) < p_dsp){
+			/*if(NbTries[1]*1.0/(i*s.nb_part()+j+1) < p_dsp){
 				NbTries[1]++;
 				if(s.globalDisplacement(h)){
 					accrate[1]++;
@@ -257,8 +269,13 @@ int main(int argc, char* argv[]){
 				if(s.bissection(h, s_bis)){
 					accrate[2]++;
 				}
-			}
+			}*/
 		}
+
+		//cout << accrate[0] << ", " << h;
+		h = h*accrate[0]/(0.8 * NbTries[0]);
+		//cout << " " << h << endl;
+
 		//############################## OUTPUT IN FILE ##############################
 		if((i%n_stride) == 0){
 			fichier_output << s << endl;
@@ -279,28 +296,15 @@ int main(int argc, char* argv[]){
 		accrate[i]/=NbTries[i];
 		fichier_output << NbTries[i] << " " << accrate[i] << endl;
 	}
+
+	/*for(size_t i(0); i < s.visits.size(); i++){
+		fichier_output << ((s.visits[i]*1.0)/N_sweeps) << endl;
+	}*/
+
 	fichier_output.close();
 
 	//Energy
 	s.average_energy();
-
-
-
-	//############################## STATS ABOUT VISITING ##############################
-	/*//Impossible values so that we are sure to catch one point
-	double visit_min(N_part * N_slices + 1.0);
-	double visit_max(-1.0);
-
-	for(const auto& el : verif){
-		for(const auto& n : el){
-			//cout << n/N_sweeps << endl;
-			if(n/N_sweeps < visit_min){visit_min = n/N_sweeps;}
-			if(n/N_sweeps > visit_max){visit_max = n/N_sweeps;}
-		}
-		cout << endl;
-	}
-	cout << "Least visited point, mean: " << visit_min << endl;
-	cout << "Most visited point, mean: " << visit_max << endl;*/
 
 	//############################## END OF MAIN ##############################
 	return 0;
@@ -380,14 +384,14 @@ System::System(const ConfigFile& configFile) :
 	N_slices(configFile.get<unsigned int>("N_slices")),
 	beta(configFile.get<double>("beta")),
 	d_tau(beta/N_slices),
-	q(configFile.get<int>("q")),
 	mass(N_part, configFile.get<double>("mass")),
 	omega(configFile.get<double>("omega")),
 	table(N_part, vector<double>(N_slices, 0.0)),
 	mm(0), mm_plu(0), mm_min(0), nn(0),
 	dis(0.0), s_old(0.0), s_new(0.0)
+	//visits(configFile.get<int>("N_slices"))
 	{
-		for(int i(0); i<N_part; i++){
+		for(unsigned int i(0); i<N_part; i++){
 			mass[i]=configFile.get<double>("m"+to_string(i+1));
 		}
 		string V_ext(configFile.get<string>("V_ext"));
@@ -427,8 +431,8 @@ ostream& System::write(ostream& output) const{
 
 
 double System::kinetic(const int& particle, const int& bead, const int& bead_pm, const double& displacement) const{
-	//return 0.5*mass[particle]*pow(((table[particle][bead]+displacement)-table[particle][bead_pm])/d_tau,2);
-	return 0.5*mass[particle]*pow((table[particle][bead]+displacement)-table[particle][bead_pm],2);
+	return 0.5*mass[particle]*pow(((table[particle][bead]+displacement)-table[particle][bead_pm])/d_tau,2);
+	//return 0.5*mass[particle]*pow((table[particle][bead]+displacement)-table[particle][bead_pm],2);
 }
 
 
@@ -436,8 +440,8 @@ double System::kinetic(const int& particle, const int& bead, const int& bead_pm,
 bool System::metropolisAcceptance(){
 	//return (randomDouble(0,1) <= exp(-(d_tau * pow(10, -20-q))* (s_new - s_old)));
 	//cout << (-(d_tau) * (s_new - s_old)) << endl;
-	//return (randomDouble(0,1) <= exp(-(d_tau) * (s_new - s_old)));
-	return (randomDouble(0,1) <= exp(-(s_new - s_old)));
+	return ( randomDouble(0,1) <= exp(-(0.1*d_tau/1.0545718) * (s_new - s_old)) );
+	//return (randomDouble(0,1) <= exp(-(s_new - s_old)));
 }
 
 
@@ -447,8 +451,10 @@ bool System::localMove(const double& h){
 	mm_plu = (mm + 1)%N_slices; // mm+1 with periodic boundary condition
 	nn = rand()%N_part; // random integer between 0 and N_part-1
 
-	dis = h * randomDouble(-1, 1); // proposed new position
-	//dis = h * CauchyDistribution(); // proposed new position (Cauchy distribution)
+	//visits[mm]++;
+
+	//dis = h * randomDouble(-1, 1); // proposed new position
+	dis = h * CauchyDistribution(); // proposed new position (Cauchy distribution)
 
 	// as we take the difference of new and old action S_new-S_old, we can
 	// consider only the part of the action that is affected by the proposed new position
@@ -456,14 +462,14 @@ bool System::localMove(const double& h){
 			+ (*ptr_Vext)(table[nn][mm]);
 	s_new = kinetic(nn,mm,mm_plu,dis) + kinetic(nn,mm,mm_min,dis)
 			+ (*ptr_Vext)(table[nn][mm]+dis);
-	if(N_part>1){
+	/*if(N_part>1){
 		for(size_t i(0); i<N_part; i++){
 			if(i!=nn){
 				s_old+=(*ptr_Vint)(table[i][mm],table[nn][mm]);
 				s_new+=(*ptr_Vint)(table[i][mm],table[nn][mm]+dis);
 			}
 		}
-	}
+	}*/
 
 	if(metropolisAcceptance()){ // metropolis acceptance
 		table[nn][mm] += dis;		// update position with new one
@@ -476,8 +482,8 @@ bool System::localMove(const double& h){
 
 bool System::globalDisplacement(const double& h){
 	nn = rand()%N_part; // random integer between 0 and N_part-1
-	//dis = h * randomDouble(-1,1); // proposed displacement of the 'entire' particle nn
-	dis = h * CauchyDistribution();  // proposed displacement of the 'entire' particle nn
+	dis = h * randomDouble(-1,1); // proposed displacement of the 'entire' particle nn
+	//dis = h * CauchyDistribution();  // proposed displacement of the 'entire' particle nn
 
 	// no relative move between the time slices --> only the potential action changes
 	s_old=0.0;

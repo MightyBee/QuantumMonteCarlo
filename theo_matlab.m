@@ -17,48 +17,51 @@ histogram(norms,100,'Normalization','probability');
 figure
 
 t = plot([0:1:size(data,2)-1], data(1,:));
-ylim([-10 10])
 xlim([0 size(data,2)])
-
-ylabel('x')
-xlabel('\tau / \delta \tau')
+ylim([-10 10])
 
 grid on
 
 closw=waitforbuttonpress;
 
 for i=2:size(data,1)
-    pause(.1)
+    pause(.0001)
     if ~ishandle(t)
         break % Arrete l'animation si la fenetre est fermee
     end
     set(t,'YData', data(i,:))
 end
+
 %}
 
-m = 10;
-w = 1;
-beta = 0.1;
-T = 1/beta;
+%hbar	1.0545718 e-34
+%kB		1.3806485 e-23
 
-x = [-1:0.01:1];
-y1 = sqrt(m*w*w/(2*pi*T)) * exp(-m*w*w/(2*T) * x.^2);
+m = 1;
+w = 1;
+beta = 10;
+hbar = 1.0545718;
+
+x = [-10:0.1:10];
+y1 = 10^(34/2-10) * sqrt(m*w^2*beta/(2*pi*hbar)) * exp(-m*w^2/(2*hbar)*10^14 * x.^2);
 y2 = 0.5 * m * w * w * x.^2;
+y3 = 10^(19/2-10) *sqrt(m*w/(pi*hbar)) * exp(-m*w^2*x.^2*0.1/hbar);
 
 figure
 hold on;
 plot(x,y1, "r");
 plot(x,y2, "b");
-t=histogram(data(1,:),200,'Normalization','pdf');
-
+plot(x,y3, "k");
+t=histogram(data(:),150,'FaceColor','#EDB120','Normalization','Probability');
+xlim([-10 10])
+ylim([0 1])
+%{
 closw=waitforbuttonpress;
-
-
-for i=2:5:size(data,1)
-    pause(0.01)
+for i=2:1:size(data,1)
+    pause(0.001)
     if ~ishandle(t)
         break % Arrete l'animation si la fenetre est fermee
     end
     set(t,'Data',data(i,:))
 end
-
+%}
