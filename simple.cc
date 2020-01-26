@@ -29,9 +29,9 @@ int main(int argc, char* argv[]){
 	string output_pos("simple.out");
 	ofstream fichier_output(output_pos.c_str());
 	fichier_output.precision(6);
-	
+
 	cout << "d_tau=" << d_tau << ", " << endl;
-	
+
 	for(int n(0); n<N_MCS; n++){
 		accrate=0.0;
 		for(int i(0); i<N_tau; i++){

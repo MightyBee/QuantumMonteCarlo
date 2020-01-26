@@ -221,14 +221,15 @@ int main(int argc, char* argv[]){
 	unsigned int N_thermalisation(configFile.get<unsigned int>("N_thermalisation"));	//How many steps should we wait before measuring stuff
 	double pos_min(configFile.get<double>("pos_min"));							// initial minimum position
 	double pos_max(configFile.get<double>("pos_max"));							// initial maximal position
-	double h(configFile.get<double>("h"));											// maximum uniform displacement of a point in the path
+	vector<double> h(3,configFile.get<double>("h"));							// maximum uniform displacement of a point in the path
 	double p_loc(configFile.get<double>("p_local"));
 	double p_dsp(configFile.get<double>("p_displacement"));
 	double p_bis(configFile.get<double>("p_bissection"));
 	double s_bis(configFile.get<double>("s_bissection"));
-	array<unsigned int,3> NbTries({0,0,0});										// numbers of tries for [0] local move [1] displacement and [2] bissection
-	array<double,3>		 accrate({0.0,0.0,0.0});								// acceptance rates for the three moves
-	//double idrate(configFile.get<double>("idrate"));							// ideal acceptance rate
+	vector<unsigned int> NbTries(3,0);												// numbers of tries for [0] local move [1] displacement and [2] bissection
+	vector<double>			accrate({0.0,0.0,0.0});									// acceptance rates for the three moves
+	double tmp_accrate(0.0);															// "instantaneous" acceptance rate for local moves
+	double idrate(configFile.get<double>("idrate"));							// ideal acceptance rate
 	size_t n_stride(configFile.get<size_t>("n_stride"));						// output is written every n_stride iterations
 	//Output file
 	string output(configFile.get<string>("output"));		 					// output file
@@ -248,32 +249,35 @@ int main(int argc, char* argv[]){
 		// ??? should we directly make one 'for i=0:N_slices*N_part' ???
 		for(size_t j(0); j < s.nb_part(); j++){
 			// local move
-			//if(NbTries[0]*1.0/((i*s.nb_part()+j+1)*s.nb_slices()) < p_loc){
+			if(NbTries[0]*1.0/((i*s.nb_part()+j+1)*s.nb_slices()) < p_loc){
+				tmp_accrate=0.0;
 				for(size_t k(0); k < s.nb_slices(); k++){
 					NbTries[0]++;
-					if(s.localMove(h)){
+					if(s.localMove(h[0])){
 						accrate[0]++;
+						tmp_accrate++;
 					}
 				}
-			//}
+				tmp_accrate/=s.nb_slices();
+				h[0]*=tmp_accrate/idrate;
+			}
 			// global displacement
 			/*if(NbTries[1]*1.0/(i*s.nb_part()+j+1) < p_dsp){
 				NbTries[1]++;
-				if(s.globalDisplacement(h)){
+				if(s.globalDisplacement(h[1])){
 					accrate[1]++;
 				}
 			}
 			// bissection
 			if(NbTries[2]*1.0/(i*s.nb_part()+j+1) < p_bis){
 				NbTries[2]++;
-				if(s.bissection(h, s_bis)){
+				if(s.bissection(h[2], s_bis)){
 					accrate[2]++;
 				}
 			}*/
 		}
 
 		//cout << accrate[0] << ", " << h;
-		h = h*accrate[0]/(0.8 * NbTries[0]);
 		//cout << " " << h << endl;
 
 		//############################## OUTPUT IN FILE ##############################
