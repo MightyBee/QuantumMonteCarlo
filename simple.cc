@@ -15,11 +15,11 @@ int main(int argc, char* argv[]){
 
 	srand(time(0));
 
-	int N_MCS(10000), N_tau(200);
+	int N_MCS(10000), N_tau(120);
 	vector<double> path(N_tau);
-	double tau_final(1.20);
+	double tau_final(1);
 	double d_tau(tau_final/N_tau);
-	double h(1.0), m(1*d_tau), w(1.0*d_tau);
+	double h(1.0), m(1.0), w(10.0);
 	double accrate(0.0);
 	int tau, tau_min, tau_plus;
 	double x_new, s_old, s_new;
@@ -28,9 +28,10 @@ int main(int argc, char* argv[]){
 
 	string output_pos("simple.out");
 	ofstream fichier_output(output_pos.c_str());
-	fichier_output.precision(15);
+	fichier_output.precision(6);
 
-	cout << m << " " << w << " " << N_tau << endl;
+	cout << "d_tau=" << d_tau << ", " << endl;
+
 	for(int n(0); n<N_MCS; n++){
 		accrate=0.0;
 		for(int i(0); i<N_tau; i++){
@@ -63,9 +64,10 @@ int main(int argc, char* argv[]){
 				accrate+=1.0/N_tau;
 			}
 		}
+		//cout << accrate << endl;
 		h*=accrate/0.8;
 		for(const auto& el : path){
-			fichier_output << el*d_tau << " ";
+			fichier_output << el << " ";
 		}
 		fichier_output << endl;
 	}
