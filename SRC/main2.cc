@@ -11,6 +11,8 @@
 using namespace std;
 
 
+/* TODO :	pimc_notes.pdf moves
+*/
 
 /*############################## NOTES ##############################
 	- theoretically x_0, x_1, ... , x_(N_slices)					, (N_slices+1) points
@@ -110,6 +112,7 @@ public:
 	void initialize(const double& pos_min, const double& pos_max);
 	size_t nb_part() const {return N_part;}
 	size_t nb_slices() const {return N_slices;}
+	vector<vector<int>> get_visits() const {return verif;}
 	ostream& write(ostream& output) const;
 	double kinetic(const int& particle, const int& bead, const int& bead_pm,
 		 				const double& displacement=0.0) const;
@@ -121,7 +124,6 @@ public:
 	void measure_energy();
 	void average_energy();
 
-	//vector<int> visits;
 
 private:
 	// physical parameters
@@ -142,6 +144,7 @@ private:
 	double s_old, s_new; // part of the action that is changed with the new position proposed (old and new values respectively)
 	vector<double> energies_psi;
 	vector<double> energies_theo;
+	vector<vector<int>> verif;
 };
 
 ostream& operator<<(ostream& output, const System& s);
@@ -262,7 +265,7 @@ int main(int argc, char* argv[]){
 				h[0]*=tmp_accrate/idrate;
 			}
 			// global displacement
-			/*if(NbTries[1]*1.0/(i*s.nb_part()+j+1) < p_dsp){
+			if(NbTries[1]*1.0/(i*s.nb_part()+j+1) < p_dsp){
 				NbTries[1]++;
 				if(s.globalDisplacement(h[1])){
 					accrate[1]++;
@@ -274,7 +277,7 @@ int main(int argc, char* argv[]){
 				if(s.bissection(h[2], s_bis)){
 					accrate[2]++;
 				}
-			}*/
+			}
 		}
 
 		//cout << accrate[0] << ", " << h;
@@ -301,9 +304,12 @@ int main(int argc, char* argv[]){
 		fichier_output << NbTries[i] << " " << accrate[i] << endl;
 	}
 
-	/*for(size_t i(0); i < s.visits.size(); i++){
-		fichier_output << ((s.visits[i]*1.0)/N_sweeps) << endl;
-	}*/
+	for(const auto& part : s.get_visits()){
+		for(const auto& v : part){
+			fichier_output << v/(NbTries[0]*1.0/(s.nb_part()*s.nb_slices())) << " ";
+		}
+		fichier_output << endl;
+	}
 
 	fichier_output.close();
 
@@ -392,8 +398,8 @@ System::System(const ConfigFile& configFile) :
 	omega(configFile.get<double>("omega")),
 	table(N_part, vector<double>(N_slices, 0.0)),
 	mm(0), mm_plu(0), mm_min(0), nn(0),
-	dis(0.0), s_old(0.0), s_new(0.0)
-	//visits(configFile.get<int>("N_slices"))
+	dis(0.0), s_old(0.0), s_new(0.0),
+	verif(N_part, vector<int>(N_slices, 0))
 	{
 		for(unsigned int i(0); i<N_part; i++){
 			mass[i]=configFile.get<double>("m"+to_string(i+1));
@@ -455,10 +461,13 @@ bool System::localMove(const double& h){
 	mm_plu = (mm + 1)%N_slices; // mm+1 with periodic boundary condition
 	nn = rand()%N_part; // random integer between 0 and N_part-1
 
-	//visits[mm]++;
+	verif[nn][mm]++;
 
-	//dis = h * randomDouble(-1, 1); // proposed new position
-	dis = h * CauchyDistribution(); // proposed new position (Cauchy distribution)
+	if(rand()%2){
+		dis = h * randomDouble(-1,1); // proposed displacement
+	}else{
+		dis = h * CauchyDistribution(); // proposed displacement
+	}
 
 	// as we take the difference of new and old action S_new-S_old, we can
 	// consider only the part of the action that is affected by the proposed new position
@@ -486,8 +495,11 @@ bool System::localMove(const double& h){
 
 bool System::globalDisplacement(const double& h){
 	nn = rand()%N_part; // random integer between 0 and N_part-1
-	dis = h * randomDouble(-1,1); // proposed displacement of the 'entire' particle nn
-	//dis = h * CauchyDistribution();  // proposed displacement of the 'entire' particle nn
+	if(rand()%2){
+		dis = h * randomDouble(-1,1); // proposed displacement
+	}else{
+		dis = h * CauchyDistribution(); // proposed displacement
+	}
 
 	// no relative move between the time slices --> only the potential action changes
 	s_old=0.0;
@@ -521,8 +533,11 @@ bool System::bissection(const double& h, const double& sRel){
 	mm = rand()%N_slices; // random integer between 0 and N_slices-1
 	mm_min = (mm + N_slices - 1)%N_slices; // mm-1 with periodic boundary condition
 	nn = rand()%N_part; // random integer between 0 and N_part-1
-	//dis = h * randomDouble(-1,1); // proposed displacement
-	dis = h * CauchyDistribution(); // proposed displacement
+	if(rand()%2){
+		dis = h * randomDouble(-1,1); // proposed displacement
+	}else{
+		dis = h * CauchyDistribution(); // proposed displacement
+	}
 	size_t l(N_slices*sRel);
 
 	// no relative move between the time slices --> only the potential action changes
