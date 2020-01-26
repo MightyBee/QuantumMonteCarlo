@@ -17,7 +17,7 @@ int main(int argc, char* argv[]){
 
 	int N_MCS(10000), N_tau(200);
 	vector<double> path(N_tau);
-	double tau_final(120.0);
+	double tau_final(1.20);
 	double d_tau(tau_final/N_tau);
 	double h(1.0), m(1*d_tau), w(1.0*d_tau);
 	double accrate(0.0);
