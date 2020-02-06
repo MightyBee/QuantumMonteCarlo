@@ -1,5 +1,5 @@
 % Physical parameters
-N_part		= 2		% number of particles
+N_part		= 1		% number of particles
 beta			= 12
 mass			= 10		% e-30 kg
 m1				= 10
@@ -11,9 +11,6 @@ frequency	= 10
 pos_min	= -1
 pos_max	= +1
 
-%boundary conditions (null, box, periodic)
-BC		= periodic
-d		= 15
 
 % Numerical parameters
 N_slices			= 1200
@@ -35,7 +32,7 @@ output = output2
 
 % Potentials (harmonic, double, square or sin)
 V_ext =	double
-V_int =	harmonic
+V_int =	null
 
 omega	= 10		%harmonic
 x0		= 3		%double
