@@ -1,4 +1,4 @@
-%data = load("output2_pos.out");
+data = load("beta01_pos.out");
 
 %{
 norms = zeros(size(data,1),1);
@@ -39,7 +39,7 @@ end
 
 m = 1;
 w = 1;
-beta = 10;
+beta = 100;
 hbar = 1.0545718;
 
 x = [-10:0.1:10];
@@ -49,10 +49,10 @@ y3 = 10^(19/2-10) *sqrt(m*w/(pi*hbar)) * exp(-m*w^2*x.^2*0.1/hbar);
 
 figure
 hold on;
-plot(x,y1, "r");
+% plot(x,y1, "r");
 plot(x,y2, "b");
 plot(x,y3, "k");
-t=histogram(data(:),150,'FaceColor','#EDB120','Normalization','Probability');
+t=histogram(data(:),150,'FaceColor','#EDB120','Normalization','pdf');
 xlim([-10 10])
 ylim([0 1])
 %{
