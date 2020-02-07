@@ -4,8 +4,8 @@ set(0,'defaultTextInterpreter','latex');
 set(0,'defaultLegendInterpreter','latex');
 
 %% loading data %%
-n_part=1;
-data=load("simple.out");
+n_part=2;
+data=load("output2_pos.out");
 n_MCS=size(data,1)
 n_slices=size(data,2)/n_part
 A=zeros(n_MCS,n_slices,n_part);
@@ -44,7 +44,7 @@ for i=2:n_MCS
         end
         for k=1:n_part
             set(t(k),'XData',[A(i,:,k) A(i,1,k)])
-        end
+        end:
 end
 
 %}
@@ -68,6 +68,37 @@ end
 
 %}
 
+n=1:100;
+G=twoP_corr(A,1,n);
+
+%%
+figure
+semilogy(n,G,'+')
+
+%% 
+meff=(0.5*log(G(1:end-2)./G(3:end))).^-1;
+figure 
+plot(n(2:end-1),meff)
+
+%%
+Oi=mean(A(:,:,1),2);
+tMC=0:n_MCS-1;
+ACT=zeros(size(tMC));
+for i=1:n_MCS-1
+    ACT(i)=1/(n_MCS-tMC(i)-1)*sum((Oi(1:n_MCS-tMC(i))-mean(Oi(1:n_MCS-tMC(i)))).*(Oi(tMC(i)+1:n_MCS)-mean(Oi(tMC(i)+1:n_MCS))));
+    if ACT(i) <= 0
+       iFinal=i-1;
+       break;
+    end
+        
+end
+ACT0=ACT(1);
+ACT_norm=ACT(2:iFinal)/ACT0;
+tMC_norm=tMC(2:iFinal);
+figure 
+loglog(tMC_norm,ACT_norm)
+tau0=0.5+sum(ACT_norm)
+Neff=n_MCS/(2*tau0)
 %% histogram %%%{
 
 xMin=-10;
@@ -97,7 +128,7 @@ plot(X,V)
 z=partitionFct(X,V,beta,dx);
 
 p=exp(-V*beta)/z;
-
+%%
 figure
 plot(X,p)
 
@@ -109,9 +140,10 @@ plot(X,p)
 
 hold on;
 for k=1:n_part
-    h(k)=histogram(B(:,k),51,'Normalization','pdf');
+    h(k)=histogram(B(:,k),91,'Normalization','pdf');
 end
 
+%%
 figure
 hold on;
 for k=1:n_part
@@ -143,5 +175,17 @@ else
         Z=Z+exp(-Ei*beta)*dx;
     end
 end
+end
+
+function G=twoP_corr(A,particle,n)
+N_MC=size(A,1);
+N_slice=size(A,2);
+G=zeros(size(n));
+for t=1:N_MC
+   for i=1:N_slice
+       G=G+A(t,i,particle)*A(t,mod(i+n-1,N_slice)+1,particle);
+   end
+end
+G=G/N_MC/N_slice-mean(mean(A(:,:,particle),1),2)^2;
 end
 

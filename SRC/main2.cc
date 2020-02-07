@@ -5,6 +5,7 @@
 #include <fstream>
 #include <string>
 #include <random>
+#include <memory>
 #include <ctime>
 #include <cmath>
 #include "ConfigFile.tcc"
@@ -26,14 +27,27 @@ using namespace std;
 //############################## HEADERS ##############################
 
 // Generate a random (uniform) double between 'min' and 'max'
-double randomDouble(const double& min, const double& max, const bool& closed=true);
+double randomDouble(const double& min=0.0, const double& max=1.0, const bool& closed=true);
 // Generate a random double from a normal Cauchy distribution
 double CauchyDistribution();
+// Other distrubution ???
+
+double GenerateDist(const double& h);
+
+// 'true' modulo (in mathematic sense)
+double mod(double a, double b){
+	return a - b*floor(a/b);
+}
+
+// periodic condition for interval [-L/2,L/2]
+double periodicBC(double x, double L){
+	return mod(x+0.5*L,L)-0.5*L;
+}
+
 
 
 //double QLagrangian(const vector<vector<double>>& pos, const double& d_tau);
 //double diff_QLagrangian(const vector<vector<double>>& pos, const double& d_tau, const unsigned int& m, const unsigned int& n, const double& new_pos);
-
 
 // Abstract class for external potential
 class Potential_ext {
@@ -80,13 +94,24 @@ private:
 };
 
 
+// Class for a sinusoidal potential
+class PotExt_sin: public Potential_ext {
+public:
+	PotExt_sin(const ConfigFile& configFile);
+	double operator()(const double& x) const;
+private:
+	double V0, L;
+};
+
+
+ ////CAREFULLL HAVE TO TAKE BCs INTO ACCOUNT WHEN COMPUTAING INTERNAL POTENTIAL
 // Abstract class for internal potential
 class Potential_int {
 public:
 	// pure virtual method => abstract class
 	virtual double operator()(const double& x1, const double& x2) const = 0; // return V at point x
 };
-
+ ////CAREFULLL HAVE TO TAKE BCs INTO ACCOUNT WHEN COMPUTAING INTERNAL POTENTIAL
 
 // Class for a null internal potential (no interactions between particles)
 class PotInt_null: public Potential_int {
@@ -120,6 +145,10 @@ public:
 	bool localMove(const double& h);
 	bool globalDisplacement(const double& h);
 	bool bissection(const double& h, const double& sRel);
+	bool swap();
+	bool inverse();
+	bool symmetryCM();
+	bool permutation();
 
 	void measure_energy();
 	void average_energy();
@@ -134,8 +163,8 @@ private:
 	int q;
 	vector<double> mass;
 	double omega;
-	Potential_ext* ptr_Vext;
-	Potential_int* ptr_Vint;
+	unique_ptr<Potential_ext> ptr_Vext;
+	unique_ptr<Potential_int> ptr_Vint;
 	vector<vector<double>> table;
 	// utilitary variables
 	unsigned int mm, mm_plu, mm_min; // mm : time slice randomly selected during each iteration, mm_plu=mm+1, mm_min=mm-1;
@@ -229,8 +258,11 @@ int main(int argc, char* argv[]){
 	double p_dsp(configFile.get<double>("p_displacement"));
 	double p_bis(configFile.get<double>("p_bissection"));
 	double s_bis(configFile.get<double>("s_bissection"));
-	vector<unsigned int> NbTries(3,0);												// numbers of tries for [0] local move [1] displacement and [2] bissection
-	vector<double>			accrate({0.0,0.0,0.0});									// acceptance rates for the three moves
+	double p_swap(configFile.get<double>("p_swap"));
+	double p_inv(configFile.get<double>("p_inverse"));
+	double p_sym(configFile.get<double>("p_symmetryCM"));
+	vector<unsigned int> NbTries(6,0);												// numbers of tries for [0] local move [1] displacement and [2] bissection
+	vector<double>			accrate(6,0.0);											// acceptance rates for the three moves
 	double tmp_accrate(0.0);															// "instantaneous" acceptance rate for local moves
 	double idrate(configFile.get<double>("idrate"));							// ideal acceptance rate
 	size_t n_stride(configFile.get<size_t>("n_stride"));						// output is written every n_stride iterations
@@ -276,6 +308,27 @@ int main(int argc, char* argv[]){
 				NbTries[2]++;
 				if(s.bissection(h[2], s_bis)){
 					accrate[2]++;
+				}
+			}
+			// swap
+			if(NbTries[3]*1.0/(i*s.nb_part()+j+1) < p_swap){
+				NbTries[3]++;
+				if(s.swap()){
+					accrate[3]++;
+				}
+			}
+			// inverse
+			if(NbTries[4]*1.0/(i*s.nb_part()+j+1) < p_inv){
+				NbTries[4]++;
+				if(s.inverse()){
+					accrate[4]++;
+				}
+			}
+			// symmetryCM
+			if(NbTries[5]*1.0/(i*s.nb_part()+j+1) < p_sym){
+				NbTries[5]++;
+				if(s.symmetryCM()){
+					accrate[5]++;
 				}
 			}
 		}
@@ -374,6 +427,18 @@ double PotExt_square::operator()(const double& x) const {
 }
 
 
+//##### PotExt_square ######
+
+PotExt_sin::PotExt_sin(const ConfigFile& configFile) :
+	Potential_ext(),
+	V0(configFile.get<double>("V0")),
+	L(configFile.get<double>("L"))
+	{}
+
+double PotExt_sin::operator()(const double& x) const {
+	return 0.5*V0*(1-cos(2*M_PI/L*x));
+}
+
 //##### Potential_rel ######
 
 PotInt_harm::PotInt_harm(const ConfigFile& configFile) :
@@ -382,6 +447,7 @@ PotInt_harm::PotInt_harm(const ConfigFile& configFile) :
 	l0(configFile.get<double>("l0"))
 	{}
 
+ ////CAREFULLL HAVE TO TAKE BCs INTO ACCOUNT WHEN COMPUTAING INTERNAL POTENTIAL
 double PotInt_harm::operator()(const double& x1, const double& x2) const {
 	return 0.5*k*pow(abs(x2-x1)-l0,2);
 }
@@ -404,17 +470,19 @@ System::System(const ConfigFile& configFile) :
 		for(unsigned int i(0); i<N_part; i++){
 			mass[i]=configFile.get<double>("m"+to_string(i+1));
 		}
+
 		string V_ext(configFile.get<string>("V_ext"));
-		if(V_ext=="null") ptr_Vext = new PotExt_null();
-		else if(V_ext=="harmonic") ptr_Vext = new PotExt_harm(configFile);
-		else if(V_ext=="double") ptr_Vext = new PotExt_double(configFile);
-		else if(V_ext=="square") ptr_Vext = new PotExt_square(configFile);
+		if(V_ext=="null") ptr_Vext = move(unique_ptr<Potential_ext>(new PotExt_null()));
+		else if(V_ext=="harmonic") ptr_Vext = move(unique_ptr<Potential_ext>(new PotExt_harm(configFile)));
+		else if(V_ext=="double") ptr_Vext = move(unique_ptr<Potential_ext>(new PotExt_double(configFile)));
+		else if(V_ext=="square") ptr_Vext = move(unique_ptr<Potential_ext>(new PotExt_square(configFile)));
+		else if(V_ext=="sin") ptr_Vext = move(unique_ptr<Potential_ext>(new PotExt_sin(configFile)));
 		else{
 			cerr << "Please choose between ""null"", ""harmonic"", ""double"" or ""square"" for ""V_ext""." << endl;
 		}
 		string V_int(configFile.get<string>("V_int"));
-		if(V_int=="null") ptr_Vint = new PotInt_null();
-		else if(V_int=="harmonic") ptr_Vint = new PotInt_harm(configFile);
+		if(V_int=="null") ptr_Vint = move(unique_ptr<Potential_int>(new PotInt_null()));
+		else if(V_int=="harmonic") ptr_Vint = move(unique_ptr<Potential_int>(new PotInt_harm(configFile)));
 		else{
 			cerr << "Please choose between ""null"", ""harmonic"" for ""V_int""." << endl;
 		}
@@ -463,11 +531,7 @@ bool System::localMove(const double& h){
 
 	verif[nn][mm]++;
 
-	if(rand()%2){
-		dis = h * randomDouble(-1,1); // proposed displacement
-	}else{
-		dis = h * CauchyDistribution(); // proposed displacement
-	}
+	dis=GenerateDist(h);
 
 	// as we take the difference of new and old action S_new-S_old, we can
 	// consider only the part of the action that is affected by the proposed new position
@@ -495,11 +559,7 @@ bool System::localMove(const double& h){
 
 bool System::globalDisplacement(const double& h){
 	nn = rand()%N_part; // random integer between 0 and N_part-1
-	if(rand()%2){
-		dis = h * randomDouble(-1,1); // proposed displacement
-	}else{
-		dis = h * CauchyDistribution(); // proposed displacement
-	}
+	dis=GenerateDist(h);
 
 	// no relative move between the time slices --> only the potential action changes
 	s_old=0.0;
@@ -533,14 +593,10 @@ bool System::bissection(const double& h, const double& sRel){
 	mm = rand()%N_slices; // random integer between 0 and N_slices-1
 	mm_min = (mm + N_slices - 1)%N_slices; // mm-1 with periodic boundary condition
 	nn = rand()%N_part; // random integer between 0 and N_part-1
-	if(rand()%2){
-		dis = h * randomDouble(-1,1); // proposed displacement
-	}else{
-		dis = h * CauchyDistribution(); // proposed displacement
-	}
+	dis=GenerateDist(h);
 	size_t l(N_slices*sRel);
 
-	// no relative move between the time slices --> only the potential action changes
+
 	s_old=0.0;
 	s_new=0.0;
 	int ind_j(0);
@@ -572,6 +628,134 @@ bool System::bissection(const double& h, const double& sRel){
 
 
 
+bool System::swap(){
+	if (N_part>1){
+		mm_min = rand()%N_part; // random integer between 0 and N_part-1
+		mm_plu = (mm_min+1+rand()%(N_part-1))%N_part; // another, but different, random integer between 0 and N_part-1
+		mm = rand()%N_slices; // random integer between 0 and N_slices-1 (bead where the swap starts)
+		nn = rand()%N_slices+1; //length of the swap (nb of slices swapped)
+
+		// no relative move between the time slices --> only the potential action changes
+		s_old=0.0;
+		s_new=0.0;
+
+		s_old += kinetic(mm_min,mm,(mm+N_slices-1)%N_slices) + kinetic(mm_plu,mm,(mm+N_slices-1)%N_slices);
+		s_new += kinetic(mm_min,mm,(mm+N_slices-1)%N_slices,table[mm_plu][mm]-table[mm_min][mm]) + kinetic(mm_plu,mm,(mm+N_slices-1)%N_slices,table[mm_min][mm]-table[mm_plu][mm]);
+
+		int ind_j(0), ind_j_pm(0);
+		for(size_t j(0); j<nn; j++){
+			ind_j=(mm+j)%N_slices;
+			ind_j_pm=(ind_j+N_slices-1)%N_slices;
+			// if the internal potential includes the masses of the particles,
+			// we'll have to consider the change in "internal" action
+			// for now, we don't have to
+			/*
+			for(size_t i(0); i<N_part; i++){
+				if(i!=mm_min){
+					s_old+=0.0; //TODO
+					s_new+=0.0; //TODO
+				}
+				if(i!=mm_plu){
+					s_old+=0.0; //TODO
+					s_new+=0.0; //TODO
+				}
+			}*/
+			if(j){
+				s_old += kinetic(mm_min,ind_j,ind_j_pm) + kinetic(mm_plu,ind_j,ind_j_pm);
+				s_new += mass[mm_min]/mass[mm_plu]*kinetic(mm_plu,ind_j,ind_j_pm) + mass[mm_plu]/mass[mm_min]*kinetic(mm_min,ind_j,ind_j_pm);
+			}
+		}
+		ind_j=(mm+nn-1)%N_slices;
+		ind_j_pm=(mm+nn)%N_slices;
+		s_old += kinetic(mm_min,ind_j,ind_j_pm) + kinetic(mm_plu,ind_j,ind_j_pm);
+		s_new += kinetic(mm_min,ind_j,ind_j_pm,table[mm_plu][ind_j]-table[mm_min][ind_j]) + kinetic(mm_plu,ind_j,ind_j_pm,table[mm_min][ind_j]-table[mm_plu][ind_j]);
+
+
+		if(metropolisAcceptance()){ // metropolis acceptance
+			double tmp(0.0);
+			for(size_t j(0); j<nn; j++){
+				ind_j=(mm+j)%N_slices;
+				tmp=table[mm_min][ind_j];
+				table[mm_min][ind_j]=table[mm_plu][ind_j];
+				table[mm_plu][ind_j]=tmp;
+			}
+			return true;
+		}
+	}
+	return false;
+}
+
+bool System::inverse(){
+	nn = rand()%N_part; // random integer between 0 and N_part-1
+
+	// no relative move between the time slices --> only the potential action changes
+	s_old=0.0;
+	s_new=0.0;
+	for(size_t j(0); j<N_slices; j++){
+		s_old+=(*ptr_Vext)( table[nn][j]);
+		s_new+=(*ptr_Vext)(-table[nn][j]);
+		if(N_part>1){
+			for(size_t i(0); i<N_part; i++){
+				if(i!=nn){
+					s_old+=(*ptr_Vint)(table[i][j], table[nn][j]);
+					s_new+=(*ptr_Vint)(table[i][j],-table[nn][j]);
+				}
+			}
+		}
+	}
+
+	if(metropolisAcceptance()){ // metropolis acceptance
+		for(auto& pos : table[nn]){
+			pos*=-1;
+		}
+		return true;
+	}else{
+		return false;
+	}
+}
+
+
+bool System::symmetryCM(){
+	nn = rand()%N_part; // random integer between 0 and N_part-1
+	dis= 0;
+	for(const auto& pos : table[nn]){
+		dis+=pos;
+	}
+	dis*=-2.0/table[nn].size();
+
+	// no relative move between the time slices --> only the potential action changes
+	s_old=0.0;
+	s_new=0.0;
+	for(size_t j(0); j<N_slices; j++){
+		s_old+=(*ptr_Vext)(table[nn][j]);
+		s_new+=(*ptr_Vext)(table[nn][j]+dis);
+		if(N_part>1){
+			for(size_t i(0); i<N_part; i++){
+				if(i!=nn){
+					s_old+=(*ptr_Vint)(table[i][j],table[nn][j]);
+					s_new+=(*ptr_Vint)(table[i][j],table[nn][j]+dis);
+				}
+			}
+		}
+	}
+
+	if(metropolisAcceptance()){ // metropolis acceptance
+		for(auto& pos : table[nn]){
+			pos+=dis;
+		}
+		return true;
+	}else{
+		return false;
+	}
+}
+
+bool permutation(){
+	bool retour(true);
+	return retour;
+}
+
+
+
 ostream& operator<<(ostream& output, const System& s){
 	return s.write(output);
 }
@@ -585,4 +769,12 @@ double randomDouble(const double& min, const double& max, const bool& closed){
 
 double CauchyDistribution(){
 	return tan(M_PI*(randomDouble(-0.5,0.5,false)));
+}
+
+double GenerateDist(const double& h){
+	if(rand()%2){
+		return h * randomDouble(-1.0,1.0); // proposed displacement
+	}else{
+		return h * CauchyDistribution(); // proposed displacement
+	}
 }

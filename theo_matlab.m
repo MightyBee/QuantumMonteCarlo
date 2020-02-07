@@ -1,4 +1,4 @@
-%data = load("output2_pos.out");
+data = load("beta01_pos.out");
 
 %{
 norms = zeros(size(data,1),1);
@@ -37,9 +37,15 @@ end
 %hbar	1.0545718 e-34
 %kB		1.3806485 e-23
 
+<<<<<<< HEAD
 m = 2;
 w = 0.2;
 beta = 5;
+=======
+m = 1;
+w = 1;
+beta = 100;
+>>>>>>> ae6b979fea1b56935ad92b5a0ce7b704596952ab
 hbar = 1.0545718;
 
 
@@ -54,6 +60,7 @@ y2 = ones(size(x))/2;
 
 figure
 hold on;
+<<<<<<< HEAD
 plot(x,y1, "r");
 plot(x,y2, "k");
 histogram(data(:),100000,'FaceColor','#EDB120','Normalization','pdf');
@@ -62,6 +69,14 @@ xlim([-2 2])
 %ylim([0 0.2])
 
 
+=======
+% plot(x,y1, "r");
+plot(x,y2, "b");
+plot(x,y3, "k");
+t=histogram(data(:),150,'FaceColor','#EDB120','Normalization','pdf');
+xlim([-10 10])
+ylim([0 1])
+>>>>>>> ae6b979fea1b56935ad92b5a0ce7b704596952ab
 %{
 
 % HARMONIC STUFF
