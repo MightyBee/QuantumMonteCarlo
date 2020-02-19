@@ -273,7 +273,7 @@ int main(int argc, char* argv[]){
 	//############################## READ PARAMETERS ##############################
 
 	unsigned int N_sweeps(configFile.get<unsigned int>("N_sweeps"));		// number of Monte Carlo iterations (aka sweeps)
-	unsigned int N_thermalisation(configFile.get<unsigned int>("N_thermalisation"));	//How many steps should we wait before measuring stuff
+	unsigned int N_thermalisation(configFile.get<unsigned int>("N_thermal"));	//How many steps should we wait before measuring stuff
 	double pos_min(configFile.get<double>("pos_min"));							// initial minimum position
 	double pos_max(configFile.get<double>("pos_max"));							// initial maximal position
 	vector<double> h(3,configFile.get<double>("h"));							// maximum uniform displacement of a point in the path
