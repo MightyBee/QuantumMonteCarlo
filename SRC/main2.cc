@@ -254,7 +254,8 @@ int main(int argc, char* argv[]){
 	//############################## GENERATE RANDOM NUMBERS ##############################
 
 	//Future code here. For now we just do
-	srand(time(0));
+	//srand(time(0));
+	srand(69);
 
 
 
