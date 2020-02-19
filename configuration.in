@@ -1,8 +1,8 @@
 % Physical parameters
 N_part		= 1		% number of particles
 beta			= 120
-mass			= 26780.8		% e-30 kg
-m1				= 26780.8
+mass			= 1		% e-30 kg
+m1				= 1
 m2				= 1
 frequency	= 1
 
@@ -29,7 +29,6 @@ p_bissection	= 0.25		% fraction of times that one bisscetion is tried
 
 p_displacement	= 0.3		% fraction of times that one global displacement is tried
 p_bissection	= 0.7		% fraction of times that one bisscetion is tried
->>>>>>> d762f4ead548016277f6004f22709af7445a5c1b
 s_bissection	= 0.3		% relative size of the bissection compared to the size of the path
 p_swap			= 0.5
 p_inverse		= 1
