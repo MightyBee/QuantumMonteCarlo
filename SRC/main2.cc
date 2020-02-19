@@ -103,6 +103,29 @@ private:
 	double V0, L;
 };
 
+class PotExt_ST: public Potential_ext {
+public:
+	PotExt_ST(const ConfigFile& configFile);
+	double f(const double& x) const;
+	double operator()(const double& x) const;
+private:
+	double V0, x0, G;
+};
+
+// Class for a sinusoidal potential
+class PotExt_OHbonds: public Potential_ext {
+public:
+	PotExt_OHbonds(const ConfigFile& configFile);
+	double VA(const double& x) const;
+	double VD(const double& x) const;
+	double operator()(const double& x) const;
+private:
+	double D, a, r0, delta1, b, R1;
+	double R, DELTA;
+};
+
+
+
 
  ////CAREFULLL HAVE TO TAKE BCs INTO ACCOUNT WHEN COMPUTAING INTERNAL POTENTIAL
 // Abstract class for internal potential
@@ -439,6 +462,38 @@ double PotExt_sin::operator()(const double& x) const {
 	return 0.5*V0*(1-cos(2*M_PI/L*x));
 }
 
+
+PotExt_ST::PotExt_ST(const ConfigFile& configFile) :
+	Potential_ext(),
+	V0(configFile.get<double>("V0")),
+	x0(configFile.get<double>("x0")),
+	G(configFile.get<double>("G"))
+	{}
+
+double PotExt_ST::f(const double& x) const {
+	return -2*pow(x,6)+pow(x,12);
+}
+
+double PotExt_ST::operator()(const double& x) const {
+	return V0*f(1/G*(x/x0-1)-1);
+}
+
+PotExt_OHbonds::PotExt_OHbonds(const ConfigFile& configFile) :
+	Potential_ext(),
+	D(83.372), a(2.2), r0(0.96), delta1(0.4*D), b(a), R1(2*r0+1/a),
+	R(configFile.get<double>("R")),
+	DELTA(delta1*exp(-b*(R-R1)))
+	{}
+double PotExt_OHbonds::VA(const double& x) const{
+	return D*(exp(-2*a*(x-r0))-2*exp(-a*(x-r0)));
+}
+double PotExt_OHbonds::VD(const double& x) const{
+	return VA(x);
+}
+double PotExt_OHbonds::operator()(const double& x) const{
+	return 0.5*(VD(x)+VA(R-x))-0.5*sqrt(pow(VD(x)-VA(R-x),2)+4*DELTA*DELTA);
+}
+
 //##### Potential_rel ######
 
 PotInt_harm::PotInt_harm(const ConfigFile& configFile) :
@@ -477,6 +532,7 @@ System::System(const ConfigFile& configFile) :
 		else if(V_ext=="double") ptr_Vext = move(unique_ptr<Potential_ext>(new PotExt_double(configFile)));
 		else if(V_ext=="square") ptr_Vext = move(unique_ptr<Potential_ext>(new PotExt_square(configFile)));
 		else if(V_ext=="sin") ptr_Vext = move(unique_ptr<Potential_ext>(new PotExt_sin(configFile)));
+		else if(V_ext=="OHbonds") ptr_Vext = move(unique_ptr<Potential_ext>(new PotExt_OHbonds(configFile)));
 		else{
 			cerr << "Please choose between ""null"", ""harmonic"", ""double"" or ""square"" for ""V_ext""." << endl;
 		}

@@ -1,4 +1,4 @@
-data = load("beta01_pos.out");
+data = load("local_beta12_pos.out");
 
 %{
 norms = zeros(size(data,1),1);
@@ -39,22 +39,26 @@ end
 
 m = 1;
 w = 1;
-beta = 100;
+beta = 12;
 hbar = 1.0545718;
 
 x = [-10:0.1:10];
 y1 = 10^(34/2-10) * sqrt(m*w^2*beta/(2*pi*hbar)) * exp(-m*w^2/(2*hbar)*10^14 * x.^2);
 y2 = 0.5 * m * w * w * x.^2;
 y3 = 10^(19/2-10) *sqrt(m*w/(pi*hbar)) * exp(-m*w^2*x.^2*0.1/hbar);
-
+%%
 figure
 hold on;
 % plot(x,y1, "r");
-plot(x,y2, "b");
-plot(x,y3, "k");
+yyaxis left
+plot(x,y3);
 t=histogram(data(:),150,'FaceColor','#EDB120','Normalization','pdf');
 xlim([-10 10])
-ylim([0 1])
+xlabel('$x$')
+ylabel('PDF')
+yyaxis right
+plot(x,y2);
+ylabel('$V$')
 %{
 closw=waitforbuttonpress;
 for i=2:1:size(data,1)

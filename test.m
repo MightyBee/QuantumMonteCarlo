@@ -4,8 +4,9 @@ set(0,'defaultTextInterpreter','latex');
 set(0,'defaultLegendInterpreter','latex');
 
 %% loading data %%
-n_part=2;
-data=load("output2_pos.out");
+n_part=1;
+output="test"
+data=load(output+"_pos.out");
 n_MCS=size(data,1)
 n_slices=size(data,2)/n_part
 A=zeros(n_MCS,n_slices,n_part);
@@ -74,11 +75,16 @@ G=twoP_corr(A,1,n);
 %%
 figure
 semilogy(n,G,'+')
+xlabel('$\Delta \tau$');
+ylabel('G$(\Delta \tau)$');
 
 %% 
-meff=(0.5*log(G(1:end-2)./G(3:end))).^-1;
-figure 
-plot(n(2:end-1),meff)
+% meff=(0.5*log(G(1:end-2)./G(3:end))).^-1;
+% figure 
+% plot(n(2:end-1),meff)
+% 
+% xlabel('$\Delta \tau$');
+% ylabel('m_{eff}$(\Delta \tau)$');
 
 %%
 Oi=mean(A(:,:,1),2);
@@ -97,6 +103,9 @@ ACT_norm=ACT(2:iFinal)/ACT0;
 tMC_norm=tMC(2:iFinal);
 figure 
 loglog(tMC_norm,ACT_norm)
+xlabel('$t_{MC}$')
+ylabel('$A_x$')
+
 tau0=0.5+sum(ACT_norm)
 Neff=n_MCS/(2*tau0)
 %% histogram %%%{
@@ -110,14 +119,15 @@ dx=(xMax-xMin)/Ninter;
 m=1;
 w=1;
 
-V=0.1*X.^4-5*X.^2;
-V=0.5*X.^2;
-x0=3;
-V0=0.5;
+% V=0.1*X.^4-5*X.^2;
+% V=0.5*X.^2;
+% x0=3;
+% V0=0.5;
 % V=V0*((X./x0).^2-1).^2;
 
 T=1;
 kB=1;%1.380649*10^(-23);
+hbar = 1.0545718;
 beta=120%1.0/(T);
 
 V=0.5*m*w^2*X.^2;
@@ -130,7 +140,7 @@ z=partitionFct(X,V,beta,dx);
 p=exp(-V*beta)/z;
 %%
 figure
-plot(X,p)
+% plot(X,p)
 
 % pTot=0.5*dx*(p(1)+p(end));
 % for i=2:length(p)-1

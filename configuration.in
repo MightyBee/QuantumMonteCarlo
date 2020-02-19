@@ -1,15 +1,15 @@
 % Physical parameters
 N_part		= 1		% number of particles
-beta			= 12
-mass			= 10		% e-30 kg
-m1				= 10
-m2				= 10
-frequency	= 10
+beta			= 120
+mass			= 26780.8		% e-30 kg
+m1				= 26780.8
+m2				= 1
+frequency	= 1
 
 
 % At the beginning, min and max random positions:
-pos_min	= -1
-pos_max	= +1
+pos_min	= 0
+pos_max	= 2
 
 
 % Numerical parameters
@@ -18,26 +18,28 @@ h					= 1
 idrate			= 0.8		% not used
 N_sweeps			= 100000
 N_thermalisation = 5000
-n_stride			= 20
+n_stride			= 50
 p_local			= 1		% fraction of times that N_slices local moves are tried
-p_displacement	= 0.7		% fraction of times that one global displacement is tried
-p_bissection	= 0.3		% fraction of times that one bisscetion is tried
+p_displacement	= 0.3		% fraction of times that one global displacement is tried
+p_bissection	= 0.7		% fraction of times that one bisscetion is tried
 s_bissection	= 0.3		% relative size of the bissection compared to the size of the path
-p_swap			= 1
+p_swap			= 0.5
 p_inverse		= 1
 p_symmetryCM	= 1
 
-output = output2
+output = test
 
 
-% Potentials (harmonic, double, square or sin)
-V_ext =	double
+% Potentials (harmonic, double, square, sin or OHbonds)
+V_ext =	OHbonds
 V_int =	null
 
-omega	= 10		%harmonic
+omega	= 1		%harmonic
 x0		= 3		%double
 V0		= 5		%double %square
 xc		= 0		%square
 L		= 3		%square
+G		= 2
 k		= 4		%rel
 l0		= 5		%rel
+R		= 2.9
