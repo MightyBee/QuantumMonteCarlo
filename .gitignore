@@ -23,6 +23,7 @@
 
 # Ajout perso #
 ############
+*.in
 *simple
 *main
 *main2
