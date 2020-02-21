@@ -168,6 +168,9 @@ public:
 	ostream& write(ostream& output) const;
 	double kinetic(const int& particle, const int& bead, const int& bead_pm,
 		 				const double& displacement=0.0) const;
+	double energy();
+	double get_H(){return H;}
+
 	bool metropolisAcceptance();
 
 	// different moves possible
@@ -199,6 +202,7 @@ private:
 	unsigned int nn; // particle randomly selected during each iteration
 	double dis; // displacement proposed
 	double s_old, s_new; // part of the action that is changed with the new position proposed (old and new values respectively)
+	double H;
 	vector<double> energies_psi;
 	vector<double> energies_theo;
 	vector<vector<int>> verif;
@@ -298,10 +302,16 @@ int main(int argc, char* argv[]){
 	ofstream fichier_output(output_pos.c_str());
 	fichier_output.precision(15);														// Precision
 
+	string output_energy(output+"_nrg.out");
+	ofstream fichier_energy(output_energy.c_str());
+	fichier_energy.precision(15);														// Precision
+
 	System s(configFile);
 	s.initialize(pos_min,pos_max);
-	fichier_output << s << endl;
 	s.write_potExt(output);
+	fichier_output << s << endl;
+	fichier_energy << s.get_H() << endl;
+
 
 
 	//############################## METROPOLIS ALGORITHM ##############################
@@ -366,6 +376,7 @@ int main(int argc, char* argv[]){
 		//############################## OUTPUT IN FILE ##############################
 		if((i%n_stride) == 0){
 			fichier_output << s << endl;
+			fichier_energy << s.get_H() << endl; //" " << s.energy() << endl;
 
 			//Energy measurement
 			if(i >= N_thermalisation){
@@ -374,6 +385,7 @@ int main(int argc, char* argv[]){
 		}
 	}
 	fichier_output.close();
+	fichier_energy.close();
 
 	//Statistics
 	string output_stat(output+"_stat.out");
@@ -523,7 +535,7 @@ System::System(const ConfigFile& configFile) :
 	omega(configFile.get<double>("omega")),
 	table(N_part, vector<double>(N_slices, 0.0)),
 	mm(0), mm_plu(0), mm_min(0), nn(0),
-	dis(0.0), s_old(0.0), s_new(0.0),
+	dis(0.0), s_old(0.0), s_new(0.0), H(0.0),
 	verif(N_part, vector<int>(N_slices, 0))
 	{
 		for(unsigned int i(0); i<N_part; i++){
@@ -555,6 +567,7 @@ void System::initialize(const double& pos_min, const double& pos_max){
 			pos = randomDouble(pos_min, pos_max);
 		}
 	}
+	H=energy();
 }
 
 
@@ -587,6 +600,19 @@ double System::kinetic(const int& particle, const int& bead, const int& bead_pm,
 	//return 0.5*mass[particle]*pow((table[particle][bead]+displacement)-table[particle][bead_pm],2);
 }
 
+double System::energy(){
+	H=0.0;
+	for(size_t part(0); part<N_part; part++){
+		for(size_t bead(0); bead<N_slices; bead++){
+			H+=kinetic(part,bead,(bead+1)%N_slices);
+			H+=(*ptr_Vext)(table[part][bead]);
+			for(size_t part2(part+1); part2<N_part; part2++){
+				H+=(*ptr_Vint)(table[part][bead],table[part2][bead]);
+			}
+		}
+	}
+}
+
 
 
 bool System::metropolisAcceptance(){
@@ -613,17 +639,18 @@ bool System::localMove(const double& h){
 			+ (*ptr_Vext)(table[nn][mm]);
 	s_new = kinetic(nn,mm,mm_plu,dis) + kinetic(nn,mm,mm_min,dis)
 			+ (*ptr_Vext)(table[nn][mm]+dis);
-	/*if(N_part>1){
+	if(N_part>1){
 		for(size_t i(0); i<N_part; i++){
 			if(i!=nn){
 				s_old+=(*ptr_Vint)(table[i][mm],table[nn][mm]);
 				s_new+=(*ptr_Vint)(table[i][mm],table[nn][mm]+dis);
 			}
 		}
-	}*/
+	}
 
 	if(metropolisAcceptance()){ // metropolis acceptance
 		table[nn][mm] += dis;		// update position with new one
+		H+=s_new-s_old;
 		return true;
 	}else{
 		return false;
@@ -655,6 +682,7 @@ bool System::globalDisplacement(const double& h){
 		for(auto& pos : table[nn]){
 			pos+=dis;
 		}
+		H+=s_new-s_old;
 		return true;
 	}else{
 		return false;
@@ -694,6 +722,7 @@ bool System::bissection(const double& h, const double& sRel){
 		for(size_t i(0); i<l; i++){
 			table[nn][(mm+i)%N_slices]+=dis;
 		}
+		H+=s_new-s_old;
 		return true;
 	}else{
 		return false;
@@ -707,16 +736,18 @@ bool System::swap(){
 		mm_min = rng()%N_part; // random integer between 0 and N_part-1
 		mm_plu = (mm_min+1+rng()%(N_part-1))%N_part; // another, but different, random integer between 0 and N_part-1
 		mm = rng()%N_slices; // random integer between 0 and N_slices-1 (bead where the swap starts)
-		nn = rng()%N_slices+1; //length of the swap (nb of slices swapped)
+		nn = rng()%(N_slices-1)+1; //length of the swap (nb of slices swapped)
 
 		// no relative move between the time slices --> only the potential action changes
 		s_old=0.0;
 		s_new=0.0;
-
-		s_old += kinetic(mm_min,mm,(mm+N_slices-1)%N_slices) + kinetic(mm_plu,mm,(mm+N_slices-1)%N_slices);
-		s_new += kinetic(mm_min,mm,(mm+N_slices-1)%N_slices,table[mm_plu][mm]-table[mm_min][mm]) + kinetic(mm_plu,mm,(mm+N_slices-1)%N_slices,table[mm_min][mm]-table[mm_plu][mm]);
-
 		int ind_j(0), ind_j_pm(0);
+
+		ind_j=mm;
+		ind_j_pm=(mm+N_slices-1)%N_slices;
+		s_old += kinetic(mm_min,ind_j,ind_j_pm) + kinetic(mm_plu,ind_j,ind_j_pm);
+		s_new += kinetic(mm_min,ind_j,ind_j_pm,table[mm_plu][mm]-table[mm_min][mm]) + kinetic(mm_plu,ind_j,ind_j_pm,table[mm_min][mm]-table[mm_plu][mm]);
+
 		for(size_t j(0); j<nn; j++){
 			ind_j=(mm+j)%N_slices;
 			ind_j_pm=(ind_j+N_slices-1)%N_slices;
@@ -751,6 +782,7 @@ bool System::swap(){
 				table[mm_min][ind_j]=table[mm_plu][ind_j];
 				table[mm_plu][ind_j]=tmp;
 			}
+			H+=s_new-s_old;
 			return true;
 		}
 	}
@@ -780,6 +812,7 @@ bool System::inverse(){
 		for(auto& pos : table[nn]){
 			pos*=-1;
 		}
+		H+=s_new-s_old;
 		return true;
 	}else{
 		return false;
@@ -815,6 +848,7 @@ bool System::symmetryCM(){
 		for(auto& pos : table[nn]){
 			pos+=dis;
 		}
+		H+=s_new-s_old;
 		return true;
 	}else{
 		return false;
