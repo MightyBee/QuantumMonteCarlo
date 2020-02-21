@@ -40,3 +40,4 @@ xc		= 0		%square
 L		= 2		%square
 k		= 4		%rel
 l0		= 2		%rel
+R		= 2.9
