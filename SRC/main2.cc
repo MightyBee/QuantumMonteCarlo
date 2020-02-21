@@ -11,6 +11,8 @@
 #include "ConfigFile.tcc"
 using namespace std;
 
+std::mt19937 rng(time(0));
+///srand(time(0));
 
 /* TODO :	pimc_notes.pdf moves
 */
@@ -253,8 +255,6 @@ int main(int argc, char* argv[]){
 
 	//############################## GENERATE RANDOM NUMBERS ##############################
 
-	srand(69);
-	///srand(time(0));
 
 
 
@@ -580,10 +580,10 @@ bool System::metropolisAcceptance(){
 
 
 bool System::localMove(const double& h){
-	mm = rand()%N_slices; // random integer between 0 and N_slices-1
+	mm = rng()%N_slices; // random integer between 0 and N_slices-1
 	mm_min = (mm + N_slices - 1)%N_slices; // mm-1 with periodic boundary condition
 	mm_plu = (mm + 1)%N_slices; // mm+1 with periodic boundary condition
-	nn = rand()%N_part; // random integer between 0 and N_part-1
+	nn = rng()%N_part; // random integer between 0 and N_part-1
 
 	verif[nn][mm]++;
 
@@ -614,7 +614,7 @@ bool System::localMove(const double& h){
 
 
 bool System::globalDisplacement(const double& h){
-	nn = rand()%N_part; // random integer between 0 and N_part-1
+	nn = rng()%N_part; // random integer between 0 and N_part-1
 	dis=GenerateDist(h);
 
 	// no relative move between the time slices --> only the potential action changes
@@ -646,9 +646,9 @@ bool System::globalDisplacement(const double& h){
 
 
 bool System::bissection(const double& h, const double& sRel){
-	mm = rand()%N_slices; // random integer between 0 and N_slices-1
+	mm = rng()%N_slices; // random integer between 0 and N_slices-1
 	mm_min = (mm + N_slices - 1)%N_slices; // mm-1 with periodic boundary condition
-	nn = rand()%N_part; // random integer between 0 and N_part-1
+	nn = rng()%N_part; // random integer between 0 and N_part-1
 	dis=GenerateDist(h);
 	size_t l(N_slices*sRel);
 
@@ -686,10 +686,10 @@ bool System::bissection(const double& h, const double& sRel){
 
 bool System::swap(){
 	if (N_part>1){
-		mm_min = rand()%N_part; // random integer between 0 and N_part-1
-		mm_plu = (mm_min+1+rand()%(N_part-1))%N_part; // another, but different, random integer between 0 and N_part-1
-		mm = rand()%N_slices; // random integer between 0 and N_slices-1 (bead where the swap starts)
-		nn = rand()%N_slices+1; //length of the swap (nb of slices swapped)
+		mm_min = rng()%N_part; // random integer between 0 and N_part-1
+		mm_plu = (mm_min+1+rng()%(N_part-1))%N_part; // another, but different, random integer between 0 and N_part-1
+		mm = rng()%N_slices; // random integer between 0 and N_slices-1 (bead where the swap starts)
+		nn = rng()%N_slices+1; //length of the swap (nb of slices swapped)
 
 		// no relative move between the time slices --> only the potential action changes
 		s_old=0.0;
@@ -742,7 +742,7 @@ bool System::swap(){
 }
 
 bool System::inverse(){
-	nn = rand()%N_part; // random integer between 0 and N_part-1
+	nn = rng()%N_part; // random integer between 0 and N_part-1
 
 	// no relative move between the time slices --> only the potential action changes
 	s_old=0.0;
@@ -772,7 +772,7 @@ bool System::inverse(){
 
 
 bool System::symmetryCM(){
-	nn = rand()%N_part; // random integer between 0 and N_part-1
+	nn = rng()%N_part; // random integer between 0 and N_part-1
 	dis= 0;
 	for(const auto& pos : table[nn]){
 		dis+=pos;
@@ -819,8 +819,8 @@ ostream& operator<<(ostream& output, const System& s){
 //########################### FUNCTION DEFINITIONS #############################
 
 double randomDouble(const double& min, const double& max, const bool& closed){
-	if(closed) return (min + (max-min) * (double)rand()/RAND_MAX);
-	else return (min + (max-min) * ((double)rand()+0.5)/(RAND_MAX+1.0));
+	if(closed) return (min + (max-min) * (double)rng()/rng.max());
+	else return (min + (max-min) * ((double)rng()+0.5)/(rng.max()+1.0));
 }
 
 double CauchyDistribution(){
@@ -828,7 +828,7 @@ double CauchyDistribution(){
 }
 
 double GenerateDist(const double& h){
-	if(rand()%2){
+	if(rng()%2){
 		return h * randomDouble(-1.0,1.0); // proposed displacement
 	}else{
 		return h * CauchyDistribution(); // proposed displacement

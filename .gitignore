@@ -27,6 +27,7 @@
 *simple
 *main
 *main2
+*test_rand
 *.a
 *.stash
 *.out

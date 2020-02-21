@@ -2,10 +2,10 @@
 #include <random>
 using namespace std;
 
-
+std::mt19937 rng(10);
 
 int main(){
-	srand(10);
-	cout << rand();
+	cout << rng() << endl;
+	cout << rng() << endl;
 	return 0;
 }
