@@ -14,7 +14,8 @@ using namespace std;
 std::mt19937 rng(time(0));
 ///srand(time(0));
 
-/* TODO :	pimc_notes.pdf moves
+/* TODO :	finish swap move
+				output with hamiltonian
 */
 
 /*############################## NOTES ##############################
@@ -160,6 +161,7 @@ class System {
 public:
 	System(const ConfigFile& configFile);
 	void initialize(const double& pos_min, const double& pos_max);
+	void write_potExt(const string& output);
 	size_t nb_part() const {return N_part;}
 	size_t nb_slices() const {return N_slices;}
 	vector<vector<int>> get_visits() const {return verif;}
@@ -167,13 +169,14 @@ public:
 	double kinetic(const int& particle, const int& bead, const int& bead_pm,
 		 				const double& displacement=0.0) const;
 	bool metropolisAcceptance();
+
+	// different moves possible
 	bool localMove(const double& h);
 	bool globalDisplacement(const double& h);
 	bool bissection(const double& h, const double& sRel);
 	bool swap();
 	bool inverse();
 	bool symmetryCM();
-	bool permutation();
 
 	void measure_energy();
 	void average_energy();
@@ -298,6 +301,7 @@ int main(int argc, char* argv[]){
 	System s(configFile);
 	s.initialize(pos_min,pos_max);
 	fichier_output << s << endl;
+	s.write_potExt(output);
 
 
 	//############################## METROPOLIS ALGORITHM ##############################
@@ -554,6 +558,20 @@ void System::initialize(const double& pos_min, const double& pos_max){
 }
 
 
+void System::write_potExt(const string& output){
+	string output_pot(output+"_pot.out");
+	ofstream f_pot(output_pot.c_str());
+	f_pot.precision(15);
+	int N(1000);
+	double x(0.0);
+	for(size_t i(0); i<N; i++){
+		double xi(-10.0), xf(10.0);
+		x=xi+i*(xf-xi)/(N-1);
+		f_pot << x << " " << (*ptr_Vext)(x) << endl;
+	}
+	f_pot.close();
+}
+
 ostream& System::write(ostream& output) const{
 	for(const auto& particle : table){
 		for(const auto& pos : particle){
@@ -702,21 +720,19 @@ bool System::swap(){
 		for(size_t j(0); j<nn; j++){
 			ind_j=(mm+j)%N_slices;
 			ind_j_pm=(ind_j+N_slices-1)%N_slices;
-			// if the internal potential includes the masses of the particles,
-			// we'll have to consider the change in "internal" action
-			// for now, we don't have to
-			/*
-			for(size_t i(0); i<N_part; i++){
-				if(i!=mm_min){
-					s_old+=0.0; //TODO
-					s_new+=0.0; //TODO
+			if(mass[mm_min]!=mass[mm_plu]){
+				for(size_t i(0); i<N_part; i++){
+					if(i!=mm_min and i!=mm_plu){
+						// change for particle(mm_min)
+						s_old+=(*ptr_Vint)(table[i][ind_j],table[mm_min][ind_j]);
+						s_new+=(*ptr_Vint)(table[i][ind_j],table[mm_plu][ind_j]);
+						// change for particle(mm_plu)
+						s_old+=(*ptr_Vint)(table[i][ind_j],table[mm_plu][ind_j]);
+						s_new+=(*ptr_Vint)(table[i][ind_j],table[mm_min][ind_j]);
+					}
 				}
-				if(i!=mm_plu){
-					s_old+=0.0; //TODO
-					s_new+=0.0; //TODO
-				}
-			}*/
-			if(j){
+			}
+			if(j){ // in swapped part of paths : K1_new = m1*(K2_old/m2), K2_new=m2/m1*K1_old
 				s_old += kinetic(mm_min,ind_j,ind_j_pm) + kinetic(mm_plu,ind_j,ind_j_pm);
 				s_new += mass[mm_min]/mass[mm_plu]*kinetic(mm_plu,ind_j,ind_j_pm) + mass[mm_plu]/mass[mm_min]*kinetic(mm_min,ind_j,ind_j_pm);
 			}
@@ -803,11 +819,6 @@ bool System::symmetryCM(){
 	}else{
 		return false;
 	}
-}
-
-bool permutation(){
-	bool retour(true);
-	return retour;
 }
 
 

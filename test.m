@@ -4,8 +4,15 @@ set(0,'defaultTextInterpreter','latex');
 set(0,'defaultLegendInterpreter','latex');
 
 %% loading data %%
+
+output="output2"
+
+data=load(output+"_pot.out");
+xx=data(:,1);
+VV=data(:,2);
+figure 
+plot(xx,VV)
 n_part=1;
-output="test"
 data=load(output+"_pos.out");
 n_MCS=size(data,1)
 n_slices=size(data,2)/n_part

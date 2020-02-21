@@ -30,7 +30,7 @@ output = output2
 
 
 % Potentials (harmonic, double or square)
-V_ext =	harmonic
+V_ext =	OHbonds
 V_int =	null
 
 omega	= 1		%harmonic
