@@ -5,15 +5,22 @@ set(0,'defaultLegendInterpreter','latex');
 
 %% loading data %%
 
-output="output2"
+pot="double";
+beta=120;
+number=1;
 
-data=load(output+"_pot.out");
+output=sprintf('%s_%d',pot,beta)
+dossier=sprintf('../simulations/%s_%d/',output,number)
+f_out=sprintf('%s%s',dossier,output);
+f_out='../simulations/double_120';
+
+data=load(f_out+"_pot.out");
 xx=data(:,1);
 VV=data(:,2);
 figure 
 plot(xx,VV)
-n_part=3;
-data=load(output+"_pos.out");
+n_part=2;
+data=load(f_out+"_pos.out");
 n_MCS=size(data,1)
 n_slices=size(data,2)/n_part
 A=zeros(n_MCS,n_slices,n_part);
@@ -24,6 +31,13 @@ for k=1:n_part
         B((1+(l-1)*n_slices):l*n_slices,k)=A(l,:,k);
     end
 end
+
+%%
+x2_term=mean(A.^2,2);
+figure
+plot(1:min(1000,n_MCS),x2_term(1:min(1000,n_MCS)))
+xlabel('sweeps')
+ylabel('$\langle x^2 \rangle$')
 
 % G=zeros(n_MCS,n_part);
 % for k=1:n_part
@@ -86,12 +100,12 @@ xlabel('$\Delta \tau$');
 ylabel('G$(\Delta \tau)$');
 
 %% 
-% meff=(0.5*log(G(1:end-2)./G(3:end))).^-1;
-% figure 
-% plot(n(2:end-1),meff)
-% 
-% xlabel('$\Delta \tau$');
-% ylabel('m_{eff}$(\Delta \tau)$');
+meff=(0.5*log(G(1:end-2)./G(3:end)));
+figure 
+plot(n(2:end-1),meff)
+
+xlabel('$\Delta \tau$');
+ylabel('$m_{eff}(\Delta \tau)$');
 
 %%
 Oi=mean(A(:,:,1),2);

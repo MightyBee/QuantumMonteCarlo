@@ -14,8 +14,9 @@ CXXFLAGS += -g #                    # pour debugger
 
 LIB=LIB/
 SRC=SRC/
+BIN=BIN/
 
-all: main2 #metropolis #main
+all: $(BIN)main2 #metropolis #main
 
 #$(LIB)main.o : $(SRC)main.cc $(SRC)ConfigFile.tcc $(SRC)ConfigFile.h
 #	$(CC) $(CXXFLAGS) -c -o $@ $<
@@ -41,5 +42,5 @@ $(LIB)main2.o : $(SRC)main2.cc
 #main: $(LIB)main.o
 #	$(CC) $(CXXFLAGS) $(LIB)main.o -o main
 
-main2: $(LIB)main2.o
-	$(CC) $(CXXFLAGS) $(LIB)main2.o -o main2
+$(BIN)main2: $(LIB)main2.o
+	$(CC) $(CXXFLAGS) $(LIB)main2.o -o $(BIN)main2

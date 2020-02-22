@@ -224,7 +224,7 @@ void System::measure_energy(){
 
 void System::average_energy(){
 	ofstream fichier_output;
-	fichier_output.open("energies.out");
+	fichier_output.open("simulations/energies.out");
 	fichier_output.precision(15);
 
 	double temp_energy(0), temp_error(0);
@@ -271,7 +271,7 @@ int main(int argc, char* argv[]){
 	if(argc>1) // Fichier d'input specifie par l'utilisateur ("./Exercice7 config_perso.in")
 		inputPath = argv[1];
 
-	ConfigFile configFile(inputPath); // Les parametres sont lus et stockes dans une "map" de strings.
+	ConfigFile configFile("config/"+inputPath); // Les parametres sont lus et stockes dans une "map" de strings.
 
 	for(int i(2); i<argc; ++i) // Input complementaires ("./Exercice7 config_perso.in input_scan=[valeur]")
 		configFile.process(argv[i]);
@@ -297,7 +297,7 @@ int main(int argc, char* argv[]){
 	double idrate(configFile.get<double>("idrate"));							// ideal acceptance rate
 	size_t n_stride(configFile.get<size_t>("n_stride"));						// output is written every n_stride iterations
 	//Output file
-	string output(configFile.get<string>("output"));		 					// output file
+	string output("simulations/"+configFile.get<string>("output"));		 					// output file
 	string output_pos(output+"_pos.out");
 	ofstream fichier_output(output_pos.c_str());
 	fichier_output.precision(15);														// Precision
@@ -531,7 +531,7 @@ System::System(const ConfigFile& configFile) :
 	N_slices(configFile.get<unsigned int>("N_slices")),
 	beta(configFile.get<double>("beta")),
 	d_tau(beta/N_slices),
-	mass(N_part, configFile.get<double>("mass")),
+	mass(N_part,0.0),// configFile.get<double>("mass")),
 	omega(configFile.get<double>("omega")),
 	table(N_part, vector<double>(N_slices, 0.0)),
 	mm(0), mm_plu(0), mm_min(0), nn(0),
@@ -611,6 +611,7 @@ double System::energy(){
 			}
 		}
 	}
+	return H;
 }
 
 
