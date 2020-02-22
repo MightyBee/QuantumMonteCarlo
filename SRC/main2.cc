@@ -308,7 +308,7 @@ int main(int argc, char* argv[]){
 	s.initialize(pos_min,pos_max);
 	s.write_potExt(output);
 	fichier_output << s << endl;
-	fichier_energy << s.get_H() << endl;
+	fichier_energy << s.get_H() << " " << s.energy() << endl;
 
 
 
@@ -374,7 +374,7 @@ int main(int argc, char* argv[]){
 		//############################## OUTPUT IN FILE ##############################
 		if((i%n_stride) == 0){
 			fichier_output << s << endl;
-			fichier_energy << s.get_H() << endl; //" " << s.energy() << endl;
+			fichier_energy << s.get_H() << " " << s.energy() << endl; //" " << s.energy() << endl;
 
 			//Energy measurement
 			if(i >= N_thermalisation){
@@ -558,7 +558,7 @@ void System::initialize(const double& pos_min, const double& pos_max){
 			pos = randomDouble(pos_min, pos_max);
 		}
 	}
-	energy();
+	H=energy();
 }
 
 
@@ -592,17 +592,17 @@ double System::kinetic(const int& particle, const int& bead, const int& bead_pm,
 }
 
 double System::energy(){
-	H=0.0;
+	double E(0.0);
 	for(size_t part(0); part<N_part; part++){
 		for(size_t bead(0); bead<N_slices; bead++){
-			H+=kinetic(part,bead,(bead+1)%N_slices);
-			H+=(*ptr_Vext)(table[part][bead]);
+			E+=kinetic(part,bead,(bead+1)%N_slices);
+			E+=(*ptr_Vext)(table[part][bead]);
 			for(size_t part2(part+1); part2<N_part; part2++){
-				H+=(*ptr_Vint)(table[part][bead],table[part2][bead]);
+				E+=(*ptr_Vint)(table[part][bead],table[part2][bead]);
 			}
 		}
 	}
-	return H;
+	return E;
 }
 
 
