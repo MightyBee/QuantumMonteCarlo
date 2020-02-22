@@ -567,7 +567,7 @@ void System::initialize(const double& pos_min, const double& pos_max){
 			pos = randomDouble(pos_min, pos_max);
 		}
 	}
-	H=energy();
+	energy();
 }
 
 
@@ -611,6 +611,7 @@ double System::energy(){
 			}
 		}
 	}
+	return H;
 }
 
 
