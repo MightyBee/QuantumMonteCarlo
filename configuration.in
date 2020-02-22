@@ -36,10 +36,12 @@ V_ext =	double
 V_int =	harmonic
 
 omega	= 1		%harmonic
-x0		= 3		%double
-V0		= 1		%double %square,
-xc		= 0		%square
-L		= 2		%square
-k		= 4		%rel
-l0		= 2		%rel
-R		= 2.9
+
+x0		= 3		%down here ref. values
+V0		= 1
+L		= 2
+
+k		= 4		% spring. l0 units of x, k untouched
+l0		= 2
+
+R		= 2.9		% H-bond
