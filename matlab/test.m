@@ -5,14 +5,14 @@ set(0,'defaultLegendInterpreter','latex');
 
 %% loading data %%
 
-pot="double";
+pot="harm";
 beta=120;
 number=1;
 
 output=sprintf('%s_%d',pot,beta)
 dossier=sprintf('../simulations/%s_%d/',output,number)
 f_out=sprintf('%s%s',dossier,output);
-f_out='../simulations/double_120';
+% f_out='../simulations/double_120';
 
 data=load(f_out+"_pot.out");
 xx=data(:,1);
