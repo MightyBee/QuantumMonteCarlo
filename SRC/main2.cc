@@ -93,7 +93,7 @@ public:
 	PotExt_square(const ConfigFile& configFile);
 	double operator()(const double& x) const;
 private:
-	double V0, xc, L;
+	double V0, x0, L;
 };
 
 
@@ -106,21 +106,19 @@ private:
 	double V0, L;
 };
 
-class PotExt_ST: public Potential_ext {
+class PotExt_LJ: public Potential_ext {
 public:
-	PotExt_ST(const ConfigFile& configFile);
-	double f(const double& x) const;
+	PotExt_LJ(const ConfigFile& configFile);
 	double operator()(const double& x) const;
 private:
-	double V0, x0, G;
+	double V0, x0;
 };
 
 // Class for a sinusoidal potential
 class PotExt_OHbonds: public Potential_ext {
 public:
 	PotExt_OHbonds(const ConfigFile& configFile);
-	double VA(const double& x) const;
-	double VD(const double& x) const;
+	double Vmorse(const double& x) const;
 	double operator()(const double& x) const;
 private:
 	double D, a, r0, delta1, b, R1;
@@ -310,7 +308,7 @@ int main(int argc, char* argv[]){
 	s.initialize(pos_min,pos_max);
 	s.write_potExt(output);
 	fichier_output << s << endl;
-	fichier_energy << s.get_H() << endl;
+	fichier_energy << s.get_H() << " " << s.energy() << endl;
 
 
 
@@ -376,7 +374,7 @@ int main(int argc, char* argv[]){
 		//############################## OUTPUT IN FILE ##############################
 		if((i%n_stride) == 0){
 			fichier_output << s << endl;
-			fichier_energy << s.get_H() << endl; //" " << s.energy() << endl;
+			fichier_energy << s.get_H() << " " << s.energy() << endl; //" " << s.energy() << endl;
 
 			//Energy measurement
 			if(i >= N_thermalisation){
@@ -453,20 +451,20 @@ double PotExt_double::operator()(const double& x) const {
 PotExt_square::PotExt_square(const ConfigFile& configFile) :
 	Potential_ext(),
 	V0(configFile.get<double>("V0")),
-	xc(configFile.get<double>("xc")),
+	x0(configFile.get<double>("x0")),
 	L(configFile.get<double>("L"))
 	{}
 
 double PotExt_square::operator()(const double& x) const {
-	if(x<xc-0.5*L || x>xc+0.5*L){
-		return 0;
-	}else{
+	if(abs(x - x0) < L/2){
 		return V0;
+	}else{
+		return 0;
 	}
 }
 
 
-//##### PotExt_square ######
+//##### PotExt_sin ######
 
 PotExt_sin::PotExt_sin(const ConfigFile& configFile) :
 	Potential_ext(),
@@ -479,35 +477,27 @@ double PotExt_sin::operator()(const double& x) const {
 }
 
 
-PotExt_ST::PotExt_ST(const ConfigFile& configFile) :
+PotExt_LJ::PotExt_LJ(const ConfigFile& configFile) :
 	Potential_ext(),
 	V0(configFile.get<double>("V0")),
-	x0(configFile.get<double>("x0")),
-	G(configFile.get<double>("G"))
+	x0(configFile.get<double>("x0"))
 	{}
 
-double PotExt_ST::f(const double& x) const {
-	return -2*pow(x,6)+pow(x,12);
-}
-
-double PotExt_ST::operator()(const double& x) const {
-	return V0*f(1/G*(x/x0-1)-1);
+double PotExt_LJ::operator()(const double& x) const {
+	return 4 * V0 * (pow(x/x0, 12) - pow(x/x0, 6) );
 }
 
 PotExt_OHbonds::PotExt_OHbonds(const ConfigFile& configFile) :
 	Potential_ext(),
-	D(83.372), a(2.2), r0(0.96), delta1(0.4*D), b(a), R1(2*r0+1/a),
+	D(83.402), a(2.2), r0(0.96), delta1(0.4*D), b(2.2), R1(2*r0+1/a),
 	R(configFile.get<double>("R")),
 	DELTA(delta1*exp(-b*(R-R1)))
 	{}
-double PotExt_OHbonds::VA(const double& x) const{
+double PotExt_OHbonds::Vmorse(const double& x) const{
 	return D*(exp(-2*a*(x-r0))-2*exp(-a*(x-r0)));
 }
-double PotExt_OHbonds::VD(const double& x) const{
-	return VA(x);
-}
 double PotExt_OHbonds::operator()(const double& x) const{
-	return 0.5*(VD(x)+VA(R-x))-0.5*sqrt(pow(VD(x)-VA(R-x),2)+4*DELTA*DELTA);
+	return 0.5*(Vmorse(x)+Vmorse(R-x) - sqrt(pow(Vmorse(x)-Vmorse(R-x),2)+4*DELTA*DELTA));
 }
 
 //##### Potential_rel ######
@@ -548,15 +538,16 @@ System::System(const ConfigFile& configFile) :
 		else if(V_ext=="double") ptr_Vext = move(unique_ptr<Potential_ext>(new PotExt_double(configFile)));
 		else if(V_ext=="square") ptr_Vext = move(unique_ptr<Potential_ext>(new PotExt_square(configFile)));
 		else if(V_ext=="sin") ptr_Vext = move(unique_ptr<Potential_ext>(new PotExt_sin(configFile)));
+		else if(V_ext=="LJ") ptr_Vext = move(unique_ptr<Potential_ext>(new PotExt_LJ(configFile)));
 		else if(V_ext=="OHbonds") ptr_Vext = move(unique_ptr<Potential_ext>(new PotExt_OHbonds(configFile)));
 		else{
-			cerr << "Please choose between ""null"", ""harmonic"", ""double"" or ""square"" for ""V_ext""." << endl;
+			cerr << "Please choose a valid potential." << endl;
 		}
 		string V_int(configFile.get<string>("V_int"));
 		if(V_int=="null") ptr_Vint = move(unique_ptr<Potential_int>(new PotInt_null()));
 		else if(V_int=="harmonic") ptr_Vint = move(unique_ptr<Potential_int>(new PotInt_harm(configFile)));
 		else{
-			cerr << "Please choose between ""null"", ""harmonic"" for ""V_int""." << endl;
+			cerr << "Please choose a valid potential." << endl;
 		}
 	}
 
@@ -601,17 +592,17 @@ double System::kinetic(const int& particle, const int& bead, const int& bead_pm,
 }
 
 double System::energy(){
-	H=0.0;
+	double E(0.0);
 	for(size_t part(0); part<N_part; part++){
 		for(size_t bead(0); bead<N_slices; bead++){
-			H+=kinetic(part,bead,(bead+1)%N_slices);
-			H+=(*ptr_Vext)(table[part][bead]);
+			E+=kinetic(part,bead,(bead+1)%N_slices);
+			E+=(*ptr_Vext)(table[part][bead]);
 			for(size_t part2(part+1); part2<N_part; part2++){
-				H+=(*ptr_Vint)(table[part][bead],table[part2][bead]);
+				E+=(*ptr_Vint)(table[part][bead],table[part2][bead]);
 			}
 		}
 	}
-	return H;
+	return E;
 }
 
 

@@ -17,7 +17,7 @@ f_out=sprintf('%s%s',dossier,output);
 data=load(f_out+"_pot.out");
 xx=data(:,1);
 VV=data(:,2);
-figure 
+figure
 plot(xx,VV)
 n_part=2;
 data=load(f_out+"_pos.out");
@@ -99,9 +99,9 @@ semilogy(n,G,'+')
 xlabel('$\Delta \tau$');
 ylabel('G$(\Delta \tau)$');
 
-%% 
+%%
 meff=(0.5*log(G(1:end-2)./G(3:end)));
-figure 
+figure
 plot(n(2:end-1),meff)
 
 xlabel('$\Delta \tau$');
@@ -117,12 +117,12 @@ for i=1:n_MCS-1
        iFinal=i-1;
        break;
     end
-        
+
 end
 ACT0=ACT(1);
 ACT_norm=ACT(2:iFinal)/ACT0;
 tMC_norm=tMC(2:iFinal);
-figure 
+figure
 loglog(tMC_norm,ACT_norm)
 xlabel('$t_{MC}$')
 ylabel('$A_x$')
@@ -193,7 +193,7 @@ for i=2:n_MCS
         for k=1:n_part
             set(t(k),'Data',A(i,:,k))
         end
-        
+
 end
 %}
 
@@ -219,4 +219,3 @@ for t=1:N_MC
 end
 G=G/N_MC/N_slice-mean(mean(A(:,:,particle),1),2)^2;
 end
-
