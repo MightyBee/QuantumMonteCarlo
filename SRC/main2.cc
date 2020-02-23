@@ -521,7 +521,7 @@ System::System(const ConfigFile& configFile) :
 	N_slices(configFile.get<unsigned int>("N_slices")),
 	beta(configFile.get<double>("beta")),
 	d_tau(beta/N_slices),
-	mass(N_part, configFile.get<double>("mass")),
+	mass(N_part,0.0),// configFile.get<double>("mass")),
 	omega(configFile.get<double>("omega")),
 	table(N_part, vector<double>(N_slices, 0.0)),
 	mm(0), mm_plu(0), mm_min(0), nn(0),
