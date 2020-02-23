@@ -12,6 +12,7 @@
 using namespace std;
 
 std::mt19937 rng(time(0));
+//std::mt19937 rng(1);
 ///srand(time(0));
 
 /* TODO :	finish swap move
@@ -202,22 +203,17 @@ private:
 	double s_old, s_new; // part of the action that is changed with the new position proposed (old and new values respectively)
 	double H;
 	vector<double> energies_psi;
-	vector<double> energies_theo;
 	vector<vector<int>> verif;
 };
 
 ostream& operator<<(ostream& output, const System& s);
 
 void System::measure_energy(){
-	double temp_energy1(0), temp_energy2(0);
+	double temp_energy(0);
 	for(size_t i(0); i < table[0].size(); i++){
-		temp_energy1 += pow(table[0][i], 2);
+		temp_energy += pow(table[0][i], 2);
 	}
-	for(size_t i(0); i < table[0].size(); i++){
-		temp_energy2 += (pow(table[0][i-1], 2) + pow(table[0][i], 2));
-	}
-	energies_psi.push_back(pow(omega, 2) * mass[0] * temp_energy1/N_slices);
-	energies_theo.push_back(0.5 * pow(omega, 2) * mass[0] * temp_energy2/N_slices);
+	energies_psi.push_back(pow(omega, 2) * mass[0] * temp_energy/N_slices);
 }
 
 void System::average_energy(){
@@ -229,7 +225,7 @@ void System::average_energy(){
 
 	cout << "Finally, with d_tau = " << d_tau << endl;
 
-	for(size_t i(0); i < energies_psi.size(); i++){		// !!!!! at the beginning i=1 and not i=0
+	for(size_t i(0); i < energies_psi.size(); i++){
 		fichier_output << energies_psi[i] << endl;
 		temp_energy += energies_psi[i];
 		temp_error += pow(energies_psi[i], 2);
@@ -238,13 +234,6 @@ void System::average_energy(){
 	temp_error = sqrt((temp_error/energies_psi.size() - pow(temp_energy, 2))/energies_psi.size());
 
 	cout << "PSI: " << temp_energy << " +- " << temp_error << endl;
-
-	temp_energy = 0;
-	for(size_t i(0); i < energies_theo.size(); i++){		// !!!!! at the beginning i=1 and not i=0
-		temp_energy += energies_theo[i];
-	}
-
-	cout << "Theo: " << (temp_energy/energies_theo.size()) << ",e-20" << endl;
 	cout << "Theory: " << (10 * 0.5 * omega * 1.0545718) << ",e-20" << endl;
 
 	fichier_output.close();
@@ -257,10 +246,6 @@ void System::average_energy(){
 
 
 int main(int argc, char* argv[]){
-
-	//############################## GENERATE RANDOM NUMBERS ##############################
-
-
 
 
 	//############################## VILLARD LIBRARY ##############################
@@ -313,8 +298,16 @@ int main(int argc, char* argv[]){
 
 
 	//############################## METROPOLIS ALGORITHM ##############################
+	double last_measured_time(time(0));
+	
 	//For every sweep...
 	for(size_t i(0); i < N_sweeps; i++){
+		
+		if(time(0) - last_measured_time >= 5){
+			last_measured_time = time(0);
+			cout << floor((double)i/N_sweeps*100) << " %" << endl;
+		}
+		
 		//For every particle...
 		// ??? should we directly make one 'for i=0:N_slices*N_part' ???
 		for(size_t j(0); j < s.nb_part(); j++){
@@ -497,7 +490,11 @@ double PotExt_OHbonds::Vmorse(const double& x) const{
 	return D*(exp(-2*a*(x-r0))-2*exp(-a*(x-r0)));
 }
 double PotExt_OHbonds::operator()(const double& x) const{
-	return 0.5*(Vmorse(x)+Vmorse(R-x) - sqrt(pow(Vmorse(x)-Vmorse(R-x),2)+4*DELTA*DELTA));
+	if(abs(x) < 8){
+		return 0.5*(Vmorse(x)+Vmorse(R-x) - sqrt(pow(Vmorse(x)-Vmorse(R-x),2)+4*DELTA*DELTA));
+	}else{
+		return 0.0;
+	}
 }
 
 //##### Potential_rel ######
@@ -566,10 +563,10 @@ void System::write_potExt(const string& output){
 	string output_pot(output+"_pot.out");
 	ofstream f_pot(output_pot.c_str());
 	f_pot.precision(15);
-	int N(1000);
+	size_t N(10000);
 	double x(0.0);
 	for(size_t i(0); i<N; i++){
-		double xi(-10.0), xf(10.0);
+		double xi(-200.0), xf(200.0);
 		x=xi+i*(xf-xi)/(N-1);
 		f_pot << x << " " << (*ptr_Vext)(x) << endl;
 	}
@@ -631,6 +628,7 @@ bool System::localMove(const double& h){
 			+ (*ptr_Vext)(table[nn][mm]);
 	s_new = kinetic(nn,mm,mm_plu,dis) + kinetic(nn,mm,mm_min,dis)
 			+ (*ptr_Vext)(table[nn][mm]+dis);
+			
 	if(N_part>1){
 		for(size_t i(0); i<N_part; i++){
 			if(i!=nn){
