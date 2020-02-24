@@ -218,7 +218,7 @@ void System::measure_energy(){
 
 void System::average_energy(){
 	ofstream fichier_output;
-	fichier_output.open("simulations/energies.out");
+	fichier_output.open("energies.out");
 	fichier_output.precision(15);
 
 	double temp_energy(0), temp_error(0);
