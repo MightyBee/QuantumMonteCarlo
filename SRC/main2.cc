@@ -254,7 +254,7 @@ int main(int argc, char* argv[]){
 	if(argc>1) // Fichier d'input specifie par l'utilisateur ("./Exercice7 config_perso.in")
 		inputPath = argv[1];
 
-	ConfigFile configFile("config/"+inputPath); // Les parametres sont lus et stockes dans une "map" de strings.
+	ConfigFile configFile(inputPath); // Les parametres sont lus et stockes dans une "map" de strings.
 
 	for(int i(2); i<argc; ++i) // Input complementaires ("./Exercice7 config_perso.in input_scan=[valeur]")
 		configFile.process(argv[i]);
@@ -280,7 +280,7 @@ int main(int argc, char* argv[]){
 	double idrate(configFile.get<double>("idrate"));							// ideal acceptance rate
 	size_t n_stride(configFile.get<size_t>("n_stride"));						// output is written every n_stride iterations
 	//Output file
-	string output("simulations/"+configFile.get<string>("output"));		 					// output file
+	string output(configFile.get<string>("output"));		 					// output file
 	string output_pos(output+"_pos.out");
 	ofstream fichier_output(output_pos.c_str());
 	fichier_output.precision(15);														// Precision
@@ -299,15 +299,15 @@ int main(int argc, char* argv[]){
 
 	//############################## METROPOLIS ALGORITHM ##############################
 	double last_measured_time(time(0));
-	
+
 	//For every sweep...
 	for(size_t i(0); i < N_sweeps; i++){
-		
+
 		if(time(0) - last_measured_time >= 5){
 			last_measured_time = time(0);
 			cout << floor((double)i/N_sweeps*100) << " %" << endl;
 		}
-		
+
 		//For every particle...
 		// ??? should we directly make one 'for i=0:N_slices*N_part' ???
 		for(size_t j(0); j < s.nb_part(); j++){
@@ -628,7 +628,7 @@ bool System::localMove(const double& h){
 			+ (*ptr_Vext)(table[nn][mm]);
 	s_new = kinetic(nn,mm,mm_plu,dis) + kinetic(nn,mm,mm_min,dis)
 			+ (*ptr_Vext)(table[nn][mm]+dis);
-			
+
 	if(N_part>1){
 		for(size_t i(0); i<N_part; i++){
 			if(i!=nn){

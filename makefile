@@ -14,7 +14,7 @@ CXXFLAGS += -g #                    # pour debugger
 
 LIB=LIB/
 SRC=SRC/
-BIN=BIN/
+BIN=
 
 all: $(BIN)main2 #metropolis #main
 
