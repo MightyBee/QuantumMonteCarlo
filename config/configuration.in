@@ -28,7 +28,7 @@ p_swap			= 1
 p_inverse		= 1
 p_symmetryCM	= 1
 
-output = output2
+output = simulations/output
 
 
 % Potentials (harmonic, double or square)
