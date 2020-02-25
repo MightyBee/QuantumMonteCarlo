@@ -11,7 +11,7 @@ number=1;
 
 file=sprintf('%s_%d',pot,beta)
 output=sprintf('../simulations/%s_%d/%s',file,number,file)
-output="../harm_120";
+output="simulations/output"
 
 data=load(output+"_pot.out");
 xx=data(:,1);
@@ -169,7 +169,7 @@ figure
 
 hold on;
 for k=1:n_part
-    h(k)=histogram(B(:,k),91,'Normalization','pdf');
+    h(k)=histogram(B(:,k),151,'Normalization','pdf');
 end
 
 %%

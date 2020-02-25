@@ -491,7 +491,7 @@ double PotExt_OHbonds::Vmorse(const double& x) const{
 }
 double PotExt_OHbonds::operator()(const double& x) const{
 	if(abs(x) < 8){
-		return 0.5*(Vmorse(x)+Vmorse(R-x) - sqrt(pow(Vmorse(x)-Vmorse(R-x),2)+4*DELTA*DELTA));
+		return 0.5*(Vmorse(R/2+x)+Vmorse(R/2-x) - sqrt(pow(Vmorse(R/2+x)-Vmorse(R/2-x),2)+4*DELTA*DELTA));
 	}else{
 		return 0.0;
 	}
