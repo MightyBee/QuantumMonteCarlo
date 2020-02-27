@@ -183,8 +183,6 @@ public:
 	double get_H(){return H;}
 
 	bool metropolisAcceptance();
-	//ENLEVER//
-	bool valide() const;
 
 	// different moves possible
 	bool localMove(const double& h);
@@ -210,8 +208,6 @@ private:
 	unique_ptr<Potential_ext> ptr_Vext;
 	unique_ptr<Potential_int> ptr_Vint;
 	vector<vector<double>> table;
-	//ENLEVER//
-	vector<vector<double>> old_table;
 	// utilitary variables
 	unsigned int mm, mm_plu, mm_min; // mm : time slice randomly selected during each iteration, mm_plu=mm+1, mm_min=mm-1;
 	unsigned int nn; // particle randomly selected during each iteration
@@ -593,19 +589,11 @@ System::System(const ConfigFile& configFile) :
 
 
 void System::initialize(const double& pos_min, const double& pos_max){
-	/*//REMETTRE//for(auto& particle : table){ // initialize random paths for each particles
+	for(auto& particle : table){ // initialize random paths for each particles
 		for(auto& pos : particle){
 			pos = randomDouble(pos_min, pos_max);
 		}
-	}*/
-	//ENLEVER->//
-	for(size_t i(0); i<N_part; i++){ // initialize random paths for each particles
-		for(auto& pos : table[i]){
-			pos = randomDouble(pos_min, pos_max,false)+0.96*i;
-		}
 	}
-	old_table=table;
-	//<-ENLEVER//
 	H=energy();
 }
 
@@ -663,16 +651,6 @@ bool System::metropolisAcceptance(){
 }
 
 
-//ENLEVER//
-bool System::valide() const{
-	for(size_t i(0); i<N_slices; i++){
-		if(table[0][i]>=table[1][i] or table[1][i]>=table[2][i]){
-			return false;
-		}
-	}
-	return true;
-}
-
 bool System::localMove(const double& h){
 	mm = rng()%N_slices; // random integer between 0 and N_slices-1
 	mm_min = (mm + N_slices - 1)%N_slices; // mm-1 with periodic boundary condition
@@ -702,19 +680,8 @@ bool System::localMove(const double& h){
 
 	if(metropolisAcceptance()){ // metropolis acceptance
 		table[nn][mm] += dis;		// update position with new one
-		/*//REMETTRE//
 		H+=s_new-s_old;
-		return true;*/
-		//ENLEVER->//
-		if(valide()){
-			H+=s_new-s_old;
-			old_table=table;
-			return true;
-		}else{
-			table=old_table;
-			return false;
-		}
-		//<-ENLEVER//
+		return true;
 	}else{
 		return false;
 	}
@@ -745,19 +712,8 @@ bool System::globalDisplacement(const double& h){
 		for(auto& pos : table[nn]){
 			pos+=dis;
 		}
-		/*//REMETTRE//
 		H+=s_new-s_old;
-		return true;*/
-		//ENLEVER->//
-		if(valide()){
-			H+=s_new-s_old;
-			old_table=table;
-			return true;
-		}else{
-			table=old_table;
-			return false;
-		}
-		//<-ENLEVER//
+		return true;
 	}else{
 		return false;
 	}
@@ -856,19 +812,9 @@ bool System::swap(){
 				table[mm_min][ind_j]=table[mm_plu][ind_j];
 				table[mm_plu][ind_j]=tmp;
 			}
-			/*//REMETTRE//
+
 			H+=s_new-s_old;
-			return true;*/
-			//ENLEVER->//
-			if(valide()){
-				H+=s_new-s_old;
-				old_table=table;
-				return true;
-			}else{
-				table=old_table;
-				return false;
-			}
-			//<-ENLEVER//
+			return true;
 		}
 	}
 	return false;
@@ -933,19 +879,8 @@ bool System::symmetryCM(){
 		for(auto& pos : table[nn]){
 			pos+=dis;
 		}
-		/*//REMETTRE//
 		H+=s_new-s_old;
-		return true;*/
-		//ENLEVER->//
-		if(valide()){
-			H+=s_new-s_old;
-			old_table=table;
-			return true;
-		}else{
-			table=old_table;
-			return false;
-		}
-		//<-ENLEVER//
+		return true;
 	}else{
 		return false;
 	}
@@ -969,14 +904,9 @@ double CauchyDistribution(){
 }
 
 double GenerateDist(const double& h){
-	/*//REMETTRE//
 	if(rng()%2){
 		return h * randomDouble(-1.0,1.0); // proposed displacement
 	}else{
 		return h * CauchyDistribution(); // proposed displacement
 	}
-	*/
-	//ENLEVER//
-	return h * randomDouble(-1.0,1.0);
-
 }
