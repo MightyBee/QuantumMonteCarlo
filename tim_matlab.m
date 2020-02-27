@@ -18,24 +18,33 @@ xx=data(:,1);
 VV=data(:,2);
 figure 
 plot(xx,VV)
-n_part=1;
+n_part=3;
 
 data=load(output+"_pos.out");
 n_MCS=size(data,1)
 n_slices=size(data,2)/n_part
 A=zeros(n_MCS,n_slices,n_part);
-B=zeros(n_MCS*n_slices,n_part);
+
 for k=1:n_part
 	A(:,:,k)=data(:,(1+(k-1)*n_slices):k*n_slices);
+end
+
+moy=mean(A(:,:,1),2)
+for k=1:n_slices
+    A(:,k,:)=A(:,k,:)-moy;
+end
+
+B=zeros(n_MCS*n_slices,n_part);
+for k=1:n_part
     for l=1:n_MCS
         B((1+(l-1)*n_slices):l*n_slices,k)=A(l,:,k);
     end
 end
 
 %%
-X2=mean(A.^2,2);
-figure
-plot(1:n_MCS,X2)
+% X2=mean(A.^2,2);
+% figure
+% plot(1:n_MCS,X2)
 
 % G=zeros(n_MCS,n_part);
 % for k=1:n_part
@@ -43,28 +52,30 @@ plot(1:n_MCS,X2)
 %         for i=
 
 %% imaginary path %%
-%{
+
 figure
-%k=3; % number of the particle that we want to analyse
+k=3; % number of the particle that we want to analyse
 hold on;
 for k=1:n_part
     t(k)=plot([A(1,:,k) A(1,1,k)],[0:1:size(A,2)]);
 end
-xlim([-10 10])
+% xlim([-10 10])
 xlabel('x')
 ylabel('\tau / \delta \tau')
 grid on
+
+%{
 closw=waitforbuttonpress;
 
 
 for i=2:n_MCS
-		pause(.01)
+		closw=waitforbuttonpress;
 		if ~ishandle(t)
 				break % Arrete l'animation si la fenetre est fermee
         end
         for k=1:n_part
             set(t(k),'XData',[A(i,:,k) A(i,1,k)])
-        end:
+        end
 end
 
 %}
@@ -169,7 +180,7 @@ figure
 
 hold on;
 for k=1:n_part
-    h(k)=histogram(B(:,k),151,'Normalization','pdf');
+    h(k)=histogram(B(:,k),51,'Normalization','pdf');
 end
 
 %%

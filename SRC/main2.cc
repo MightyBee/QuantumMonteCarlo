@@ -129,19 +129,20 @@ private:
 
 
 
+
  ////CAREFULLL HAVE TO TAKE BCs INTO ACCOUNT WHEN COMPUTAING INTERNAL POTENTIAL
 // Abstract class for internal potential
 class Potential_int {
 public:
 	// pure virtual method => abstract class
-	virtual double operator()(const double& x1, const double& x2) const = 0; // return V at point x
+	virtual double operator()(const double& x1, const double& x2, const size_t& i, const size_t& j) const = 0; // return V at point x
 };
  ////CAREFULLL HAVE TO TAKE BCs INTO ACCOUNT WHEN COMPUTAING INTERNAL POTENTIAL
 
 // Class for a null internal potential (no interactions between particles)
 class PotInt_null: public Potential_int {
 public:
-	double operator()(const double& x1, const double& x2) const {return 0.0;}
+	double operator()(const double& x1, const double& x2, const size_t& i, const size_t& j) const {return 0.0;}
 };
 
 
@@ -149,9 +150,20 @@ public:
 class PotInt_harm: public Potential_int {
 public:
 	PotInt_harm(const ConfigFile& configFile);
-	double operator()(const double& x1, const double& x2) const;
+	double operator()(const double& x1, const double& x2, const size_t& i, const size_t& j) const;
 private:
 	double k, l0;
+};
+
+
+class PotInt_threeBonds: public Potential_int {
+public:
+	PotInt_threeBonds(const ConfigFile& configFile);
+	double Vmorse(const double& r) const;
+	double Vcoulomb(const double& r) const;
+	double operator()(const double& x1, const double& x2, const size_t& i, const size_t& j) const;
+private:
+	double D, a, r0, A;
 };
 
 
@@ -171,6 +183,8 @@ public:
 	double get_H(){return H;}
 
 	bool metropolisAcceptance();
+	//ENLEVER//
+	bool valide() const;
 
 	// different moves possible
 	bool localMove(const double& h);
@@ -196,6 +210,8 @@ private:
 	unique_ptr<Potential_ext> ptr_Vext;
 	unique_ptr<Potential_int> ptr_Vint;
 	vector<vector<double>> table;
+	//ENLEVER//
+	vector<vector<double>> old_table;
 	// utilitary variables
 	unsigned int mm, mm_plu, mm_min; // mm : time slice randomly selected during each iteration, mm_plu=mm+1, mm_min=mm-1;
 	unsigned int nn; // particle randomly selected during each iteration
@@ -506,8 +522,33 @@ PotInt_harm::PotInt_harm(const ConfigFile& configFile) :
 	{}
 
  ////CAREFULLL HAVE TO TAKE BCs INTO ACCOUNT WHEN COMPUTAING INTERNAL POTENTIAL
-double PotInt_harm::operator()(const double& x1, const double& x2) const {
+double PotInt_harm::operator()(const double& x1, const double& x2, const size_t& i, const size_t& j) const {
 	return 0.5*k*pow(abs(x2-x1)-l0,2);
+}
+
+
+PotInt_threeBonds::PotInt_threeBonds(const ConfigFile& configFile) :
+	Potential_int(),
+	D(83.402), a(2.2), r0(0.96),
+	A(pow(configFile.get<double>("Q"),2)*230.708)
+	{}
+
+double PotInt_threeBonds::Vmorse(const double& r) const{
+	return D*(exp(-2*a*(r-r0))-2*exp(-a*(r-r0)));
+}
+
+double PotInt_threeBonds::Vcoulomb(const double& r) const {
+	return A/r;
+}
+
+ ////CAREFULLL HAVE TO TAKE BCs INTO ACCOUNT WHEN COMPUTAING INTERNAL POTENTIAL
+double PotInt_threeBonds::operator()(const double& x1, const double& x2, const size_t& i, const size_t& j) const {
+	if(i==2 or j==2){
+		return Vmorse(abs(x1-x2));
+	}
+	else{
+		return Vcoulomb(abs(x1-x2));
+	}
 }
 
 
@@ -521,6 +562,7 @@ System::System(const ConfigFile& configFile) :
 	mass(N_part,0.0),// configFile.get<double>("mass")),
 	omega(configFile.get<double>("omega")),
 	table(N_part, vector<double>(N_slices, 0.0)),
+	old_table(table),
 	mm(0), mm_plu(0), mm_min(0), nn(0),
 	dis(0.0), s_old(0.0), s_new(0.0), H(0.0),
 	verif(N_part, vector<int>(N_slices, 0))
@@ -543,6 +585,7 @@ System::System(const ConfigFile& configFile) :
 		string V_int(configFile.get<string>("V_int"));
 		if(V_int=="null") ptr_Vint = move(unique_ptr<Potential_int>(new PotInt_null()));
 		else if(V_int=="harmonic") ptr_Vint = move(unique_ptr<Potential_int>(new PotInt_harm(configFile)));
+		else if(V_int=="threeBonds") ptr_Vint = move(unique_ptr<Potential_int>(new PotInt_threeBonds(configFile)));
 		else{
 			cerr << "Please choose a valid potential." << endl;
 		}
@@ -550,11 +593,19 @@ System::System(const ConfigFile& configFile) :
 
 
 void System::initialize(const double& pos_min, const double& pos_max){
-	for(auto& particle : table){ // initialize random paths for each particles
+	/*//REMETTRE//for(auto& particle : table){ // initialize random paths for each particles
 		for(auto& pos : particle){
 			pos = randomDouble(pos_min, pos_max);
 		}
+	}*/
+	//ENLEVER->//
+	for(size_t i(0); i<N_part; i++){ // initialize random paths for each particles
+		for(auto& pos : table[i]){
+			pos = randomDouble(pos_min, pos_max,false)+0.96*i;
+		}
 	}
+	old_table=table;
+	//<-ENLEVER//
 	H=energy();
 }
 
@@ -595,7 +646,7 @@ double System::energy(){
 			E+=kinetic(part,bead,(bead+1)%N_slices);
 			E+=(*ptr_Vext)(table[part][bead]);
 			for(size_t part2(part+1); part2<N_part; part2++){
-				E+=(*ptr_Vint)(table[part][bead],table[part2][bead]);
+				E+=(*ptr_Vint)(table[part][bead],table[part2][bead],part,part2);
 			}
 		}
 	}
@@ -611,6 +662,16 @@ bool System::metropolisAcceptance(){
 	//return (randomDouble(0,1) <= exp(-(s_new - s_old)));
 }
 
+
+//ENLEVER//
+bool System::valide() const{
+	for(size_t i(0); i<N_slices; i++){
+		if(table[0][i]>=table[1][i] or table[1][i]>=table[2][i]){
+			return false;
+		}
+	}
+	return true;
+}
 
 bool System::localMove(const double& h){
 	mm = rng()%N_slices; // random integer between 0 and N_slices-1
@@ -632,16 +693,28 @@ bool System::localMove(const double& h){
 	if(N_part>1){
 		for(size_t i(0); i<N_part; i++){
 			if(i!=nn){
-				s_old+=(*ptr_Vint)(table[i][mm],table[nn][mm]);
-				s_new+=(*ptr_Vint)(table[i][mm],table[nn][mm]+dis);
+				s_old+=(*ptr_Vint)(table[i][mm],table[nn][mm],i,nn);
+				s_new+=(*ptr_Vint)(table[i][mm],table[nn][mm]+dis,i,nn);
 			}
 		}
 	}
 
+
 	if(metropolisAcceptance()){ // metropolis acceptance
 		table[nn][mm] += dis;		// update position with new one
+		/*//REMETTRE//
 		H+=s_new-s_old;
-		return true;
+		return true;*/
+		//ENLEVER->//
+		if(valide()){
+			H+=s_new-s_old;
+			old_table=table;
+			return true;
+		}else{
+			table=old_table;
+			return false;
+		}
+		//<-ENLEVER//
 	}else{
 		return false;
 	}
@@ -661,8 +734,8 @@ bool System::globalDisplacement(const double& h){
 		if(N_part>1){
 			for(size_t i(0); i<N_part; i++){
 				if(i!=nn){
-					s_old+=(*ptr_Vint)(table[i][j],table[nn][j]);
-					s_new+=(*ptr_Vint)(table[i][j],table[nn][j]+dis);
+					s_old+=(*ptr_Vint)(table[i][j],table[nn][j],i,nn);
+					s_new+=(*ptr_Vint)(table[i][j],table[nn][j]+dis,i,nn);
 				}
 			}
 		}
@@ -672,8 +745,19 @@ bool System::globalDisplacement(const double& h){
 		for(auto& pos : table[nn]){
 			pos+=dis;
 		}
+		/*//REMETTRE//
 		H+=s_new-s_old;
-		return true;
+		return true;*/
+		//ENLEVER->//
+		if(valide()){
+			H+=s_new-s_old;
+			old_table=table;
+			return true;
+		}else{
+			table=old_table;
+			return false;
+		}
+		//<-ENLEVER//
 	}else{
 		return false;
 	}
@@ -699,8 +783,8 @@ bool System::bissection(const double& h, const double& sRel){
 		if(N_part>1){
 			for(size_t i(0); i<N_part; i++){
 				if(i!=nn){
-					s_old+=(*ptr_Vint)(table[i][ind_j],table[nn][ind_j]);
-					s_new+=(*ptr_Vint)(table[i][ind_j],table[nn][ind_j]+dis);
+					s_old+=(*ptr_Vint)(table[i][ind_j],table[nn][ind_j],i,nn);
+					s_new+=(*ptr_Vint)(table[i][ind_j],table[nn][ind_j]+dis,i,nn);
 				}
 			}
 		}
@@ -745,11 +829,11 @@ bool System::swap(){
 				for(size_t i(0); i<N_part; i++){
 					if(i!=mm_min and i!=mm_plu){
 						// change for particle(mm_min)
-						s_old+=(*ptr_Vint)(table[i][ind_j],table[mm_min][ind_j]);
-						s_new+=(*ptr_Vint)(table[i][ind_j],table[mm_plu][ind_j]);
+						s_old+=(*ptr_Vint)(table[i][ind_j],table[mm_min][ind_j],i,mm_min);
+						s_new+=(*ptr_Vint)(table[i][ind_j],table[mm_plu][ind_j],i,mm_min);
 						// change for particle(mm_plu)
-						s_old+=(*ptr_Vint)(table[i][ind_j],table[mm_plu][ind_j]);
-						s_new+=(*ptr_Vint)(table[i][ind_j],table[mm_min][ind_j]);
+						s_old+=(*ptr_Vint)(table[i][ind_j],table[mm_plu][ind_j],i,mm_plu);
+						s_new+=(*ptr_Vint)(table[i][ind_j],table[mm_min][ind_j],i,mm_plu);
 					}
 				}
 			}
@@ -772,8 +856,19 @@ bool System::swap(){
 				table[mm_min][ind_j]=table[mm_plu][ind_j];
 				table[mm_plu][ind_j]=tmp;
 			}
+			/*//REMETTRE//
 			H+=s_new-s_old;
-			return true;
+			return true;*/
+			//ENLEVER->//
+			if(valide()){
+				H+=s_new-s_old;
+				old_table=table;
+				return true;
+			}else{
+				table=old_table;
+				return false;
+			}
+			//<-ENLEVER//
 		}
 	}
 	return false;
@@ -791,8 +886,8 @@ bool System::inverse(){
 		if(N_part>1){
 			for(size_t i(0); i<N_part; i++){
 				if(i!=nn){
-					s_old+=(*ptr_Vint)(table[i][j], table[nn][j]);
-					s_new+=(*ptr_Vint)(table[i][j],-table[nn][j]);
+					s_old+=(*ptr_Vint)(table[i][j], table[nn][j],i,nn);
+					s_new+=(*ptr_Vint)(table[i][j],-table[nn][j],i,nn);
 				}
 			}
 		}
@@ -827,8 +922,8 @@ bool System::symmetryCM(){
 		if(N_part>1){
 			for(size_t i(0); i<N_part; i++){
 				if(i!=nn){
-					s_old+=(*ptr_Vint)(table[i][j],table[nn][j]);
-					s_new+=(*ptr_Vint)(table[i][j],table[nn][j]+dis);
+					s_old+=(*ptr_Vint)(table[i][j],table[nn][j],i,nn);
+					s_new+=(*ptr_Vint)(table[i][j],table[nn][j]+dis,i,nn);
 				}
 			}
 		}
@@ -838,8 +933,19 @@ bool System::symmetryCM(){
 		for(auto& pos : table[nn]){
 			pos+=dis;
 		}
+		/*//REMETTRE//
 		H+=s_new-s_old;
-		return true;
+		return true;*/
+		//ENLEVER->//
+		if(valide()){
+			H+=s_new-s_old;
+			old_table=table;
+			return true;
+		}else{
+			table=old_table;
+			return false;
+		}
+		//<-ENLEVER//
 	}else{
 		return false;
 	}
@@ -863,9 +969,14 @@ double CauchyDistribution(){
 }
 
 double GenerateDist(const double& h){
+	/*//REMETTRE//
 	if(rng()%2){
 		return h * randomDouble(-1.0,1.0); // proposed displacement
 	}else{
 		return h * CauchyDistribution(); // proposed displacement
 	}
+	*/
+	//ENLEVER//
+	return h * randomDouble(-1.0,1.0);
+
 }
