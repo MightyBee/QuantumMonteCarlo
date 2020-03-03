@@ -16,7 +16,7 @@ output="simulations/output"
 data=load(output+"_pot.out");
 xx=data(:,1);
 VV=data(:,2);
-figure 
+figure
 plot(xx,VV)
 n_part=1;
 
@@ -33,9 +33,9 @@ for k=1:n_part
 end
 
 %%
-X2=mean(A.^2,2);
-figure
-plot(1:n_MCS,X2)
+% X2=mean(A.^2,2);
+% figure
+% plot(1:n_MCS,X2)
 
 % G=zeros(n_MCS,n_part);
 % for k=1:n_part
@@ -97,9 +97,9 @@ semilogy(n,G,'+')
 xlabel('$\Delta \tau$');
 ylabel('G$(\Delta \tau)$');
 
-%% 
+%%
 meff=(0.5*log(G(1:end-2)./G(3:end)));
-figure 
+figure
 plot(n(2:end-1),meff)
 
 xlabel('$\Delta \tau$');
@@ -115,12 +115,12 @@ for i=1:n_MCS-1
        iFinal=i-1;
        break;
     end
-        
+
 end
 ACT0=ACT(1);
 ACT_norm=ACT(2:iFinal)/ACT0;
 tMC_norm=tMC(2:iFinal);
-figure 
+figure
 loglog(tMC_norm,ACT_norm)
 xlabel('$t_{MC}$')
 ylabel('$A_x$')
@@ -191,7 +191,7 @@ for i=2:n_MCS
         for k=1:n_part
             set(t(k),'Data',A(i,:,k))
         end
-        
+
 end
 %}
 
@@ -217,4 +217,3 @@ for t=(n_therm+1):N_MC
 end
 G=G/(N_MC-n_therm)/N_slice-mean(mean(A(:,:,particle),1),2)^2;
 end
-
