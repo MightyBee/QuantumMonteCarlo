@@ -154,6 +154,15 @@ private:
 	double k, l0;
 };
 
+class PotInt_LJ: public Potential_int {
+public:
+	PotInt_LJ(const ConfigFile& configFile);
+	double LJ(const double& r) const;
+	double operator()(const double& x1, const double& x2) const;
+private:
+	double V0, x0, G;
+};
+
 
 
 class System {
@@ -511,6 +520,25 @@ double PotInt_harm::operator()(const double& x1, const double& x2) const {
 }
 
 
+PotInt_LJ::PotInt_LJ(const ConfigFile& configFile) :
+	Potential_int(),
+	V0(configFile.get<double>("Vmin")),
+	x0(configFile.get<double>("x0")),
+	G(configFile.get<double>("G"))
+	{}
+
+////CAREFULLL HAVE TO TAKE BCs INTO ACCOUNT WHEN COMPUTAING INTERNAL POTENTIAL
+double PotInt_LJ::LJ(const double& r) const {
+	if(r<0)	return pow(r,12)-2*pow(r,6);
+	else return 0.0;
+}
+
+////CAREFULLL HAVE TO TAKE BCs INTO ACCOUNT WHEN COMPUTAING INTERNAL POTENTIAL
+double PotInt_LJ::operator()(const double& x1, const double& x2) const {
+	return V0*LJ((abs(x1-x2)/x0-1)/G-1);
+}
+
+
 //########################### class 'System' methods DEFINITIONS #############################
 
 System::System(const ConfigFile& configFile) :
@@ -518,7 +546,7 @@ System::System(const ConfigFile& configFile) :
 	N_slices(configFile.get<unsigned int>("N_slices")),
 	beta(configFile.get<double>("beta")),
 	d_tau(beta/N_slices),
-	mass(N_part,0.0),// configFile.get<double>("mass")),
+	mass(N_part,configFile.get<double>("mass")),
 	omega(configFile.get<double>("omega")),
 	table(N_part, vector<double>(N_slices, 0.0)),
 	mm(0), mm_plu(0), mm_min(0), nn(0),
@@ -543,6 +571,7 @@ System::System(const ConfigFile& configFile) :
 		string V_int(configFile.get<string>("V_int"));
 		if(V_int=="null") ptr_Vint = move(unique_ptr<Potential_int>(new PotInt_null()));
 		else if(V_int=="harmonic") ptr_Vint = move(unique_ptr<Potential_int>(new PotInt_harm(configFile)));
+		else if(V_int=="LJ") ptr_Vint = move(unique_ptr<Potential_int>(new PotInt_LJ(configFile)));
 		else{
 			cerr << "Please choose a valid potential." << endl;
 		}

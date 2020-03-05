@@ -1,5 +1,6 @@
-set(groot,'defaultAxesFontSize',13)
-set(groot,'defaultAxesLabelFontSizeMultiplier',19/13)
+set(groot,'defaultAxesFontSize',14)
+set(groot,'defaultAxesLabelFontSizeMultiplier',16/14)
+set(0, 'DefaultLineLineWidth', 1.5);
 set(0,'defaultTextInterpreter','latex');
 set(0,'defaultLegendInterpreter','latex');
 
@@ -18,15 +19,17 @@ xx=data(:,1);
 VV=data(:,2);
 figure
 plot(xx,VV)
-n_part=1;
+n_part=5;
 
 data=load(output+"_pos.out");
 n_MCS=size(data,1)
 n_slices=size(data,2)/n_part
+n_therm=1
+n_MCS=n_MCS-n_therm
 A=zeros(n_MCS,n_slices,n_part);
 B=zeros(n_MCS*n_slices,n_part);
 for k=1:n_part
-	A(:,:,k)=data(:,(1+(k-1)*n_slices):k*n_slices);
+	A(:,:,k)=data(n_therm+1:end,(1+(k-1)*n_slices):k*n_slices);
     for l=1:n_MCS
         B((1+(l-1)*n_slices):l*n_slices,k)=A(l,:,k);
     end
