@@ -4,6 +4,18 @@ set(0, 'DefaultLineLineWidth', 1.5);
 set(0,'defaultTextInterpreter','latex');
 set(0,'defaultLegendInterpreter','latex');
 
+set(gcf, 'Position',  [200, 200, 450, 300]);
+
+% magic code to remove white space
+ax = gca;
+outerpos = ax.OuterPosition;
+ti = ax.TightInset; 
+left = outerpos(1) + ti(1);
+bottom = outerpos(2) + ti(2);
+ax_width = outerpos(3) - ti(1) - ti(3);
+ax_height = outerpos(4) - ti(2) - ti(4);
+ax.Position = [left bottom ax_width ax_height];
+
 %% Parametres %%
 %%%%%%%%%%%%%%%%
 
@@ -53,9 +65,11 @@ for i=1:nsimul
 end
 
 %%
+beta=beta(2:end);
+Hmoy=Hmoy(2:end);
 
 
 figure
-plot(beta,Hmoy,'+')
+plot(beta,Hmoy*1e-5,'+')
 xlabel('$\beta$')
-xlabel('$E$')
+ylabel('$E \; {\rm [10^{-15} \; J]}$')

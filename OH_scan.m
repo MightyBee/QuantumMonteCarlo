@@ -7,20 +7,17 @@ set(0,'defaultLegendInterpreter','latex');
 %%%%%%%%%%%%%%%%
 
 repertoire = '';
-code = 'main2';
-dossier='simulations/transition_scan/';
+code = 'main3';
+dossier='simulations/OH_scan/';
 
 nsimul = 5; % number of simulations
 
 
-beta=round(linspace(0.5, 20, nsimul));
+xc2=(linspace(2, 3, nsimul));
 
-name="beta";
-param = beta; %
+name="xc2";
+param = xc2; %
 
-
-d_tau=0.1;
-N=round(
 
 %% Simulations %%
 %%%%%%%%%%%%%%%%%
@@ -29,7 +26,7 @@ output = cell(1, nsimul); % Tableau de cellules contenant le nom des fichiers de
 for i = 1:nsimul
     output{i} = sprintf('%s%s=%.15g.out',dossier,name,param(i)) ;
     % Execution du programme en lui envoyant la valeur a scanner en argument
-    cmd = sprintf('./%s%s config/harmonic.in %s=%.15g output=%s', repertoire, code, name, param(i),output{i});
+    cmd = sprintf('./%s%s config/Hbonds.in %s=%.15g output=%s', repertoire, code, name, param(i),output{i});
     disp(cmd)
     system(cmd);
 
