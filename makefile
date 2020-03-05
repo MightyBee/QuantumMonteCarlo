@@ -6,7 +6,7 @@ CXXFLAGS = -std=c++1z
 # Partie commentÃ©e : choisissez les options que vous voulez avoir
 #                    en dÃ©commentant la/les lignes correspondantes
 #
-CXXFLAGS += -pedantic -Wall -Wextra#       # pour les purs et durs
+CXXFLAGS += -pedantic -Wall -Wextra # pour les purs et durs
 CXXFLAGS += -g #                    # pour debugger
 # CXXFLAGS += -pg #                 # pour profiler
 # LDFLAGS  += -pg #                 # pour profiler
