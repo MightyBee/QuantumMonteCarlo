@@ -14,9 +14,9 @@ dossier='simulations/transition_scan/';
 nsimul = 20; % number of simulations
 
 
-beta=linspace(0.1, 30, nsimul);
+beta=linspace(0.5, 30, nsimul);
 
-d_tau=0.05;
+d_tau=0.1;
 N=round(beta/d_tau)
 beta=N*d_tau
 
@@ -58,4 +58,4 @@ end
 figure
 plot(beta,Hmoy,'+')
 xlabel('$\beta$')
-xlabel('$E$')
+xlabel('$$')

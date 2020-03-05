@@ -19,7 +19,7 @@ xx=data(:,1);
 VV=data(:,2);
 figure
 plot(xx,VV)
-n_part=5;
+n_part=3;
 
 data=load(output+"_pos.out");
 n_MCS=size(data,1)
