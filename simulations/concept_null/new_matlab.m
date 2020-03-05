@@ -1,7 +1,9 @@
 %data = load("output2_pot.out");
 data = load("output2_pos.out");
 
-line_width = 1;
+figure('DefaultAxesFontSize', 14);
+
+line_width = 1.5;
 colors = [
     [1 0 0];
     [0.9290, 0.6940, 0.1250];
@@ -14,8 +16,6 @@ colors = [
 
 %show = mean(transpose(data)).^2 + std(transpose(data)).^2;
 %plot(show);
-
-figure('DefaultAxesFontSize', 12);
 
 plot([0:1:9], data(1,:), '-', 'Color', colors(1,:), "LineWidth", line_width);
 hold on;

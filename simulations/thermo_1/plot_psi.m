@@ -1,4 +1,4 @@
-data = load("simulations/thermo_4/output2_pos.out");
+data = load("output2_pos.out");
 
 figure('DefaultAxesFontSize', 12);
 

@@ -4,3 +4,6 @@
 *.out
 *.o
 config/*.in
+chebfun/*
+simulations/*
+*.mat

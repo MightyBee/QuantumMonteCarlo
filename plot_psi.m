@@ -1,40 +1,65 @@
-data = load("simulations/thermo_4/output2_pos.out");
+data = load("output2_pos.out");
 
-figure('DefaultAxesFontSize', 12);
-
-plot(mean(transpose(data.^2)));
-
-m = 1;
-w = 1;
-beta = 0.5;
+beta = 10;
 hbar = 1.0545718;
 
-x = [-12:0.1:12];
-%classic
-y1 = sqrt(m*w^2*beta/(20*pi*hbar)) * exp(-m*w^2*beta/(20*hbar)* x.^2);
-%quantum
-y2 = sqrt(m*w/(10*pi*hbar)) * exp(-m*w*x.^2/(10*hbar));
-
-plot(x, y1, "r-", "LineWidth", 1);
-hold on;
-plot(x, y2, "b-", "LineWidth", 1);
-histogram(data(:),50,'FaceColor','#EDB120','Normalization','pdf');
+xl = 1;
+dx = 0.2;
+yl = 2.5;
+dy = 0.5;
 
 
-xlabel('$x \, [\AA]$', 'Interpreter','latex', 'FontSize', 14);
-ylabel('$|\psi(x)|^2$', 'Interpreter','latex','FontSize', 14);
-legend("Thermal", "Quantum", "Simulation");
+%{
+D = 83.402;
+a = 2.2;
+r0 = 0.96;
+delta1 = 0.4*D;
+b = 2.2;
+R1 = 2*r0+1/a;
+R = 2.9;
+DELTA = delta1*exp(-b*(R-R1));
 
-xticks([-12:2:12]);
-xlim([-12 12]);
-%yticks([0:0.02:0.2]);
-%ylim([0 0.2]);
+%----------------------------------
+%Credits: https://www.chebfun.org/examples/ode-eig/DoubleWell.html
+
+a = 1.0545718^2/(2*m)*100;
+
+tic
+x = chebfun('x');
+L = chebop(-1,1);
+%L.op = @(x,u) -a*diff(u,2) + (0.5*((D*(exp(-2*a*(R/2+x-r0))-2*exp(-a*(R/2+x-r0))))+(D*(exp(-2*a*(R/2-x-r0))-2*exp(-a*(R/2-x-r0)))) - sqrt(((D*(exp(-2*a*(R/2+x-r0))-2*exp(-a*(R/2+x-r0))))-(D*(exp(-2*a*(R/2-x-r0))-2*exp(-a*(R/2-x-r0)))))^2+4*DELTA^2))).*u;
+L.bc = 0;
+[EV,D] = eigs(L,1);
+disp(diag(D)), toc
+%------------------------------------
+plot(EV(:,1)/sum(EV(:,1)), "b-", 'linewidth', 1.5);
+%}
 
 
-set(gcf, 'Position',  [200, 200, 500, 400]);
+%0.5*((D*(exp(-2*a*(R/2+x-r0))-2*exp(-a*(R/2+x-r0))))+(D*(exp(-2*a*(R/2-x-r0))-2*exp(-a*(R/2-x-r0)))) - sqrt(((D*(exp(-2*a*(R/2+x-r0))-2*exp(-a*(R/2+x-r0))))-(D*(exp(-2*a*(R/2-x-r0))-2*exp(-a*(R/2-x-r0)))))^2+4*DELTA^2));
 
+%(D*(exp(-2*a*(R/2+x-r0))-2*exp(-a*(R/2+x-r0))))
+
+%(D*(exp(-2*a*(R/2-x-r0))-2*exp(-a*(R/2-x-r0))))
+
+%(D*(exp(-2*a*(x-r0))-2*exp(-a*(x-r0))));
+
+figure('DefaultAxesFontSize', 14);
+histogram(data(:),100,'FaceColor','#EDB120','Normalization','pdf');
+
+%xlabel('$x \, [\AA]$', 'Interpreter','latex', 'FontSize', 16);
+%ylabel('Probability density', 'Interpreter','latex','FontSize', 16);
+
+%xticks([-xl:dx:xl]);
+%xlim([-xl xl]);
+%yticks([0:dy:yl]);
+%ylim([0 yl]);
+
+
+set(gcf, 'Position',  [200, 200, 600, 400]);
 
 % magic code to remove white space
+%{
 ax = gca;
 outerpos = ax.OuterPosition;
 ti = ax.TightInset; 
@@ -43,5 +68,4 @@ bottom = outerpos(2) + ti(2);
 ax_width = outerpos(3) - ti(1) - ti(3);
 ax_height = outerpos(4) - ti(2) - ti(4);
 ax.Position = [left bottom ax_width ax_height];
-
-
+%}

@@ -11,6 +11,8 @@
 #include "ConfigFile.tcc"
 using namespace std;
 
+double hbar(1.054571628); // IUPAC
+
 std::mt19937 rng(time(0));
 //std::mt19937 rng(1);
 ///srand(time(0));
@@ -58,6 +60,7 @@ class Potential_ext {
 public:
 	// pure virtual method => abstract class
 	virtual double operator()(const double& x) const = 0; // return V at point x
+	double e0_estimator(const double& x) const{return 0;};
 };
 
 
@@ -120,6 +123,8 @@ class PotExt_OHbonds: public Potential_ext {
 public:
 	PotExt_OHbonds(const ConfigFile& configFile);
 	double Vmorse(const double& x) const;
+	double dVmorse(const double& x) const;
+	double e0_estimator(const double& x) const;
 	double operator()(const double& x) const;
 private:
 	double D, a, r0, delta1, b, R1;
@@ -189,7 +194,7 @@ public:
 	bool inverse();
 	bool symmetryCM();
 
-	void measure_energy();
+	void measure_energy(double, double);
 	void average_energy();
 
 
@@ -212,30 +217,46 @@ private:
 	double s_old, s_new; // part of the action that is changed with the new position proposed (old and new values respectively)
 	double H;
 	vector<double> energies_psi;
+	vector<double> energies_h;
 	vector<vector<int>> verif;
 };
 
 ostream& operator<<(ostream& output, const System& s);
 
-void System::measure_energy(){
-	double temp_energy(0);
-	for(size_t i(0); i < table[0].size(); i++){
-		temp_energy += pow(table[0][i], 2);
+void System::measure_energy(double V0, double x0){
+	double temp_energy_H(0), temp_energy_ETH(0);
+	
+	double R(V0);	//For H-bond, V0 is R
+	double D(83.402), a(2.2), r0(0.96), delta1(0.4*D), b(2.2), R1(2*r0+1/a), DELTA(delta1*exp(-b*(R-R1)));
+	
+	//temp_energy_ETH += pow(table[0][0], 2);
+	//temp_energy_ETH += (*ptr_Vext)(table[0][0]) + 2 * V0 * pow(table[0][0]/x0, 2) * (pow(table[0][0]/x0, 2) - 1);
+	temp_energy_ETH += (*ptr_Vext)(table[0][0]) + (*ptr_Vext).e0_estimator(table[0][0]);
+	
+	for(size_t i(1); i < table[0].size(); i++){
+		//temp_energy_ETH += pow(table[0][i], 2);
+		//temp_energy_ETH += (*ptr_Vext)(table[0][i]) + 2 * V0 * pow(table[0][i]/x0, 2) * (pow(table[0][i]/x0, 2) - 1);
+		temp_energy_ETH += (*ptr_Vext)(table[0][i]) + (*ptr_Vext).e0_estimator(table[0][i]);
+		
+		temp_energy_H += mass[0]/2 * pow((table[0][i] - table[0][i-1])/d_tau, 2) + (*ptr_Vext)(table[0][i]);
 	}
-	energies_psi.push_back(pow(omega, 2) * mass[0] * temp_energy/N_slices);
+	temp_energy_H += mass[0]/2 * pow((table[0][0] - table[0][N_slices-1])/d_tau, 2) + (*ptr_Vext)(table[0][0]);
+	
+	energies_psi.push_back(temp_energy_ETH/N_slices);
+	energies_h.push_back(temp_energy_H/N_slices);
 }
 
 void System::average_energy(){
 	ofstream fichier_output;
-	fichier_output.open("energies.out");
+	fichier_output.open("e0.out");
 	fichier_output.precision(15);
 
 	double temp_energy(0), temp_error(0);
 
 	cout << "Finally, with d_tau = " << d_tau << endl;
-
+	
+	//PSI energies
 	for(size_t i(0); i < energies_psi.size(); i++){
-		fichier_output << energies_psi[i] << endl;
 		temp_energy += energies_psi[i];
 		temp_error += pow(energies_psi[i], 2);
 	}
@@ -243,8 +264,22 @@ void System::average_energy(){
 	temp_error = sqrt((temp_error/energies_psi.size() - pow(temp_energy, 2))/energies_psi.size());
 
 	cout << "PSI: " << temp_energy << " +- " << temp_error << endl;
-	cout << "Theory: " << (10 * 0.5 * omega * 1.0545718) << ",e-20" << endl;
+	fichier_output << "PSI: " << temp_energy << " +- " << temp_error << endl;
+	
+	//H energies
+	temp_energy = 0;
+	temp_error = 0;
+	
+	for(size_t i(0); i < energies_h.size(); i++){
+		temp_energy += energies_h[i];
+		temp_error += pow(energies_h[i], 2);
+	}
+	temp_energy = temp_energy/energies_h.size();
+	temp_error = sqrt((temp_error/energies_h.size() - pow(temp_energy, 2))/energies_h.size());
 
+	cout << "H:   " << temp_energy << " +- " << temp_error << endl;
+	fichier_output << "H:   " << temp_energy << " +- " << temp_error << endl;
+	
 	fichier_output.close();
 }
 
@@ -302,8 +337,12 @@ int main(int argc, char* argv[]){
 	s.initialize(pos_min,pos_max);
 	s.write_potExt(output);
 	fichier_output << s << endl;
-	fichier_energy << s.get_H() << " " << s.energy() << endl;
-
+	
+	//UNCOMMENT IF YOU WANT TO COMPARE WITH OUTPUT2_NRG.OUT
+	//s.measure_energy();
+	double V0(configFile.get<double>("R"));
+	//double V0(configFile.get<double>("V0"));
+	double x0(configFile.get<double>("x0"));
 
 
 	//############################## METROPOLIS ALGORITHM ##############################
@@ -376,11 +415,12 @@ int main(int argc, char* argv[]){
 		//############################## OUTPUT IN FILE ##############################
 		if((i%n_stride) == 0){
 			fichier_output << s << endl;
-			fichier_energy << s.get_H() << " " << s.energy() << endl; //" " << s.energy() << endl;
-
+			fichier_energy << s.energy() << " " << s.get_H() << endl;
+			
 			//Energy measurement
 			if(i >= N_thermalisation){
-				s.measure_energy();
+				//fichier_energy << s.energy() << " " << s.get_H() << endl;
+				s.measure_energy(V0, x0);
 			}
 		}
 	}
@@ -498,12 +538,18 @@ PotExt_OHbonds::PotExt_OHbonds(const ConfigFile& configFile) :
 double PotExt_OHbonds::Vmorse(const double& x) const{
 	return D*(exp(-2*a*(x-r0))-2*exp(-a*(x-r0)));
 }
+double PotExt_OHbonds::dVmorse(const double& x) const{
+	return 2*a*D*(exp(-a*(x-r0))-exp(-2*a*(x-r0)));
+}
 double PotExt_OHbonds::operator()(const double& x) const{
 	if(abs(x) < 8){
 		return 0.5*(Vmorse(R/2+x)+Vmorse(R/2-x) - sqrt(pow(Vmorse(R/2+x)-Vmorse(R/2-x),2)+4*DELTA*DELTA));
 	}else{
 		return 0.0;
 	}
+}
+double PotExt_OHbonds::e0_estimator(const double& x) const{
+	return x/4 * (dVmorse(R/2+x) - dVmorse(R/2-x) - (Vmorse(R/2+x) - Vmorse(R/2-x))*(dVmorse(R/2+x) + dVmorse(R/2-x))/sqrt(pow(Vmorse(R/2+x) - Vmorse(R/2-x), 2) + 4*DELTA*DELTA));
 }
 
 //##### Potential_rel ######
@@ -634,10 +680,7 @@ double System::energy(){
 
 
 bool System::metropolisAcceptance(){
-	//return (randomDouble(0,1) <= exp(-(d_tau * pow(10, -20-q))* (s_new - s_old)));
-	//cout << (-(d_tau) * (s_new - s_old)) << endl;
-	return ( randomDouble(0,1) <= exp(-(0.1*d_tau/1.0545718) * (s_new - s_old)) );
-	//return (randomDouble(0,1) <= exp(-(s_new - s_old)));
+	return ( randomDouble(0,1) <= exp(-(0.1*d_tau/hbar) * (s_new - s_old)) );
 }
 
 
@@ -669,7 +712,7 @@ bool System::localMove(const double& h){
 
 	if(metropolisAcceptance()){ // metropolis acceptance
 		table[nn][mm] += dis;		// update position with new one
-		H+=s_new-s_old;
+		H += (s_new - s_old);
 		return true;
 	}else{
 		return false;
@@ -701,7 +744,7 @@ bool System::globalDisplacement(const double& h){
 		for(auto& pos : table[nn]){
 			pos+=dis;
 		}
-		H+=s_new-s_old;
+		H += (s_new - s_old);
 		return true;
 	}else{
 		return false;
@@ -741,7 +784,7 @@ bool System::bissection(const double& h, const double& sRel){
 		for(size_t i(0); i<l; i++){
 			table[nn][(mm+i)%N_slices]+=dis;
 		}
-		H+=s_new-s_old;
+		H += (s_new - s_old);
 		return true;
 	}else{
 		return false;
@@ -801,7 +844,7 @@ bool System::swap(){
 				table[mm_min][ind_j]=table[mm_plu][ind_j];
 				table[mm_plu][ind_j]=tmp;
 			}
-			H+=s_new-s_old;
+			H += (s_new - s_old);
 			return true;
 		}
 	}
@@ -831,7 +874,7 @@ bool System::inverse(){
 		for(auto& pos : table[nn]){
 			pos*=-1;
 		}
-		H+=s_new-s_old;
+		H += (s_new - s_old);
 		return true;
 	}else{
 		return false;
@@ -867,7 +910,7 @@ bool System::symmetryCM(){
 		for(auto& pos : table[nn]){
 			pos+=dis;
 		}
-		H+=s_new-s_old;
+		H += (s_new - s_old);
 		return true;
 	}else{
 		return false;
