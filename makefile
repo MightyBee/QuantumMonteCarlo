@@ -16,12 +16,15 @@ LIB=LIB/
 SRC=SRC/
 BIN=
 
-all: $(BIN)main2 #metropolis #main
+all: $(BIN)main2 $(BIN)main3 #metropolis #main
 
 #$(LIB)main.o : $(SRC)main.cc $(SRC)ConfigFile.tcc $(SRC)ConfigFile.h
 #	$(CC) $(CXXFLAGS) -c -o $@ $<
 
 $(LIB)main2.o : $(SRC)main2.cc
+	$(CC) $(CXXFLAGS) -c -o $@ $<
+
+$(LIB)main3.o : $(SRC)main3.cc
 	$(CC) $(CXXFLAGS) -c -o $@ $<
 
 #$(LIB)ConfigFile.o : $(SRC)ConfigFile.tcc $(SRC)ConfigFile.h
@@ -44,3 +47,7 @@ $(LIB)main2.o : $(SRC)main2.cc
 
 $(BIN)main2: $(LIB)main2.o
 	$(CC) $(CXXFLAGS) $(LIB)main2.o -o $(BIN)main2
+
+
+$(BIN)main3: $(LIB)main3.o
+	$(CC) $(CXXFLAGS) $(LIB)main3.o -o $(BIN)main3
