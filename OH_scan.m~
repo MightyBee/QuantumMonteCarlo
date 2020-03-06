@@ -1,6 +1,5 @@
 set(groot,'defaultAxesFontSize',14)
 set(groot,'defaultAxesLabelFontSizeMultiplier',16/14)
-set(0, 'DefaultFigurePosition',  [200, 200, 450, 300]);
 set(0,'defaultTextInterpreter','latex');
 set(0,'defaultLegendInterpreter','latex');
 
@@ -11,7 +10,7 @@ repertoire = '';
 code = 'main3';
 dossier='simulations/OH_scan/';
 
-nsimul = 9; % number of simulations
+nsimul = 3; % number of simulations
 
 
 xc2=(linspace(2.3, 2.95, nsimul));
@@ -29,7 +28,7 @@ for i = 1:nsimul
     % Execution du programme en lui envoyant la valeur a scanner en argument
     cmd = sprintf('./%s%s config/Hbonds.in %s=%.15g output=%s', repertoire, code, name, param(i),output{i});
     disp(cmd)
-%     system(cmd);
+    system(cmd);
 
 end
 
@@ -38,14 +37,13 @@ end
 
 
 
-Heth=zeros(1,nsimul);
-errHeth=zeros(1,nsimul);
+Heth=zeros(2,nsimul);
 Rmoy=zeros(1,nsimul);
 
 for i=1:nsimul
     data=load(output{i}+"_e0.out");
-    Heth(i)=data(1,1);
-    errHeth(i)=data(1,2);
+    Heth(1,i)=data(1,1);
+    Heth(2,i)=data(1,2)
     data=load(output{i}+"_pos.out");
     n_MCS=size(data,1);
     n_slices=size(data,2)/n_part;
@@ -78,24 +76,19 @@ for i=1:nsimul
         h(k)=histogram(B(:,k)-mean_x(1),-0.5:0.02:3,'Normalization','pdf');
 %         plot([mean_x(k) mean_x(k)]-mean_x(1),[0 25])
     end
-    rm_space(gca);
 end
 
 %%
 
-errx=sqrt(std_x(1)^2+std_x(3)^2)*ones(1,nsimul);
-
 figure
-errorbar(Rmoy,Heth,errHeth,errHeth,errx,errx,'o')
-xlabel('$R \; {\rm[\AA]}$');
-ylabel('$E_0 \; {\rm[10^{-20} \, J]}$');
-rm_space(gca);
+errorbar(Rmoy,Heth(1,:),Heth(2,:),
 
 rmax_l=[1.02, 1.04, 1.10, 1.12, 1.16, 1.02, 1.00, 0.98, 1.84];
 rmax_r=rmax_l+0.02;
 rmax=(rmax_l+rmax_r)/2;
 rmax=min(rmax,Rmoy-rmax)
 
+errx=sqrt(std_x(1)^2+std_x(3)^2)*ones(1,nsimul);
 erry=0.02*ones(1,nsimul);
 
 figure
@@ -119,8 +112,26 @@ for i=1:100
 end;
 
 plot(x, y, "Color", "b");
-rm_space(gca);
 
+
+
+
+
+
+
+
+
+set(gcf, 'Position',  [200, 200, 450, 300]);
+
+% magic code to remove white space
+ax = gca;
+outerpos = ax.OuterPosition;
+ti = ax.TightInset; 
+left = outerpos(1) + ti(1);
+bottom = outerpos(2) + ti(2);
+ax_width = outerpos(3) - ti(1) - ti(3);
+ax_height = outerpos(4) - ti(2) - ti(4);
+ax.Position = [left bottom ax_width ax_height];
 
 function y = morse(x)
     global R;

@@ -145,7 +145,7 @@ figure('DefaultAxesFontSize', 14);
 
 
 
-%{
+
 plot(R_list, EH, '.', 'MarkerSize', 20, "Color", "r");
 hold on;
 plot(R_list, ED, '.', 'MarkerSize', 20, "Color", "g");
@@ -161,10 +161,10 @@ ylim([-145 -80]);
 yticks([-145:10:-80]);
 xticks([2:0.1:3]);
 xlim([2 3]);
-%}
 
 
 
+%{
 
 
 plot(R_list, R_list/2 + rH_min, '.', 'MarkerSize', 15, "Color", "r");
@@ -200,7 +200,7 @@ end;
 plot(x, y, "Color", "b");
 
 
-
+%}
 
 
 

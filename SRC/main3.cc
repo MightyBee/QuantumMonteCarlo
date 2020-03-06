@@ -39,8 +39,11 @@ class Potential {
 public:
 	Potential(const ConfigFile& configFile);
 	double Vmorse(const double& x) const;
+	double dVmorse(const double& x) const;
 	double DELTA(const double& R) const;
+	double V1(const double& x, const double& R) const;
 	double operator()(const double& x0, const double& x1, const double& x2, const size_t& part=0, const double& h=0.0);
+	double e0_estimator(const double& x, const double& R) const;
 private:
 	double D, a, r0, delta1, b, R1;
 	double xc2, L;
@@ -72,8 +75,8 @@ public:
 	bool inverse();
 	bool symmetryCM();
 
-	void measure_energy();
-	void average_energy();
+	void measure_energy(double, double);
+	void average_energy(const string& output);
 
 
 private:
@@ -94,30 +97,46 @@ private:
 	double s_old, s_new; // part of the action that is changed with the new position proposed (old and new values respectively)
 	double H;
 	vector<double> energies_psi;
+	vector<double> energies_h;
 	vector<vector<int>> verif;
 };
 
 ostream& operator<<(ostream& output, const System& s);
 
-void System::measure_energy(){
-	double temp_energy(0);
-	for(size_t i(0); i < table[0].size(); i++){
-		temp_energy += pow(table[0][i], 2);
+void System::measure_energy(double V0, double x0){
+	double temp_energy_H(0), temp_energy_ETH(0);
+
+	double R(V0);	//For H-bond, V0 is R
+	double D(83.402), a(2.2), r0(0.96), delta1(0.4*D), b(2.2), R1(2*r0+1/a), DELTA(delta1*exp(-b*(R-R1)));
+	double x(0.0);
+
+	x=table[1][0]-(table[0][0]+table[2][0])/2;
+	R=table[2][0]-table[0][0];
+	temp_energy_ETH += V.V1(x,R) + V.e0_estimator(x,R);
+	temp_energy_H += mass[1]/2 * pow((table[1][0] - table[1][N_slices-1])/d_tau, 2) + V.V1(x,R);
+
+	for(size_t i(1); i < table[0].size(); i++){
+		x=table[1][i]-(table[0][i]+table[2][i])/2;
+		R=table[2][i]-table[0][i];
+		temp_energy_ETH += V.V1(x,R) + V.e0_estimator(x,R);
+		temp_energy_H += mass[1]/2 * pow((table[1][i] - table[1][i-1])/d_tau, 2) + V.V1(x,R);
 	}
-	energies_psi.push_back(pow(omega, 2) * mass[0] * temp_energy/N_slices);
+
+	energies_psi.push_back(temp_energy_ETH/N_slices);
+	energies_h.push_back(temp_energy_H/N_slices);
 }
 
-void System::average_energy(){
+void System::average_energy(const string& output){
 	ofstream fichier_output;
-	fichier_output.open("energies.out");
+	fichier_output.open(output+"_e0.out");
 	fichier_output.precision(15);
 
 	double temp_energy(0), temp_error(0);
 
 	cout << "Finally, with d_tau = " << d_tau << endl;
 
+	//PSI energies
 	for(size_t i(0); i < energies_psi.size(); i++){
-		fichier_output << energies_psi[i] << endl;
 		temp_energy += energies_psi[i];
 		temp_error += pow(energies_psi[i], 2);
 	}
@@ -125,11 +144,24 @@ void System::average_energy(){
 	temp_error = sqrt((temp_error/energies_psi.size() - pow(temp_energy, 2))/energies_psi.size());
 
 	cout << "PSI: " << temp_energy << " +- " << temp_error << endl;
-	cout << "Theory: " << (10 * 0.5 * omega * 1.0545718) << ",e-20" << endl;
+	fichier_output << temp_energy << " " << temp_error << endl;
+
+	//H energies
+	temp_energy = 0;
+	temp_error = 0;
+
+	for(size_t i(0); i < energies_h.size(); i++){
+		temp_energy += energies_h[i];
+		temp_error += pow(energies_h[i], 2);
+	}
+	temp_energy = temp_energy/energies_h.size();
+	temp_error = sqrt((temp_error/energies_h.size() - pow(temp_energy, 2))/energies_h.size());
+
+	cout << "H:   " << temp_energy << " +- " << temp_error << endl;
+	fichier_output << temp_energy << " " << temp_error << endl;
 
 	fichier_output.close();
 }
-
 
 //################################################################################################//
 //############################################  MAIN  ############################################//
@@ -184,6 +216,10 @@ int main(int argc, char* argv[]){
 	//s.write_potExt(output);
 	fichier_output << s << endl;
 	fichier_energy << s.get_H() << " " << s.energy() << endl;
+
+	double V0(configFile.get<double>("R"));
+	//double V0(configFile.get<double>("V0"));
+	double x0(configFile.get<double>("x0"));
 
 
 
@@ -262,7 +298,7 @@ int main(int argc, char* argv[]){
 
 			//Energy measurement
 			if(i >= N_thermalisation){
-				s.measure_energy();
+				s.measure_energy(V0,x0);
 			}
 		}
 	}
@@ -288,7 +324,7 @@ int main(int argc, char* argv[]){
 	fichier_output.close();
 
 	//Energy
-	s.average_energy();
+	s.average_energy(output);
 
 	//############################## END OF MAIN ##############################
 	return 0;
@@ -311,6 +347,13 @@ Potential::Potential(const ConfigFile& configFile) :
 double Potential::Vmorse(const double& x) const{
 	return D*(exp(-2*a*(x-r0))-2*exp(-a*(x-r0)));
 }
+double Potential::dVmorse(const double& x) const{
+	return 2*a*D*(exp(-a*(x-r0))-exp(-2*a*(x-r0)));
+}
+
+double Potential::V1(const double& x, const double& R) const{
+	return 0.5*(Vmorse(R/2+x)+Vmorse(R/2-x)-sqrt(pow(Vmorse(R/2+x)-Vmorse(R/2-x),2)+4*pow(DELTA(R),2)));
+}
 
 double Potential::DELTA(const double& R) const{
 	return delta1*exp(-b*(R-R1));
@@ -323,10 +366,16 @@ double Potential::operator()(const double& x0, const double& x1, const double& x
 	retour+=pow(2*(X[0]-0.0)/L,20);
 	retour+=pow(2*(X[2]-xc2)/L,20);
 	if(abs(X[1]-0.5*(X[0]+X[2])) < 8){
-		retour+=0.5*(Vmorse(abs(X[1]-X[0]))+Vmorse(abs(X[1]-X[2])));
-		retour-=0.5*sqrt(pow(Vmorse(abs(X[1]-X[0]))-Vmorse(abs(X[1]-X[2])),2)+4*pow(DELTA(abs(X[2]-X[0])),2));
+		retour+=V1(X[1]-(X[2]+X[0])/2,X[2]-X[0]);
+		//retour+=0.5*(Vmorse(abs(X[1]-X[0]))+Vmorse(abs(X[1]-X[2])));
+		//retour-=0.5*sqrt(pow(Vmorse(abs(X[1]-X[0]))-Vmorse(abs(X[1]-X[2])),2)+4*pow(DELTA(abs(X[2]-X[0])),2));
 	}
 	return retour;
+}
+
+//TODODDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD
+double Potential::e0_estimator(const double& x, const double& R) const{
+	return x/4 * (dVmorse(R/2+x) - dVmorse(R/2-x) - (Vmorse(R/2+x) - Vmorse(R/2-x))*(dVmorse(R/2+x) + dVmorse(R/2-x))/sqrt(pow(Vmorse(R/2+x) - Vmorse(R/2-x), 2) + 4*pow(DELTA(R),2)));
 }
 
 
