@@ -11,10 +11,10 @@ repertoire = '';
 code = 'main3';
 dossier='simulations/OH_scan/';
 
-nsimul = 9; % number of simulations
+nsimul = 17; % number of simulations
 
 
-xc2=(linspace(2.3, 2.95, nsimul));
+xc2=(linspace(2.28, 3.03, nsimul));
 
 name="xc2";
 param = xc2; %
@@ -47,6 +47,7 @@ for i=1:nsimul
     Heth(i)=data(1,1);
     errHeth(i)=data(1,2);
     data=load(output{i}+"_pos.out");
+    n_part=3;
     n_MCS=size(data,1);
     n_slices=size(data,2)/n_part;
     A=zeros(n_MCS,n_slices,n_part);
@@ -72,16 +73,18 @@ for i=1:nsimul
     end
     Rmoy(i)=mean_x(3)-mean_x(1)
     
-    figure('Position',[200,400,1520,680])
-    hold on;
-    for k=1:n_part
-        h(k)=histogram(B(:,k)-mean_x(1),-0.5:0.02:3,'Normalization','pdf');
-%         plot([mean_x(k) mean_x(k)]-mean_x(1),[0 25])
-    end
-    rm_space(gca);
+%     figure('Position',[200,400,1520,680])
+%     hold on;
+%     for k=1:n_part
+%         h(k)=histogram(B(:,k)-mean_x(1),-0.5:0.02:3,'Normalization','pdf');
+% %         plot([mean_x(k) mean_x(k)]-mean_x(1),[0 25])
+%     end
+%     rm_space(gca);
 end
 
 %%
+
+Rmoy=[2.0061 2.0556 2.1037 2.1535 2.1990 2.2495 2.2989 2.3477 2.3990 2.4538 2.5174 2.5867 2.6550 2.7381 2.8211 2.8986 2.9731]
 
 errx=sqrt(std_x(1)^2+std_x(3)^2)*ones(1,nsimul);
 
@@ -90,16 +93,24 @@ errorbar(Rmoy,Heth,errHeth,errHeth,errx,errx,'o')
 xlabel('$R \; {\rm[\AA]}$');
 ylabel('$E_0 \; {\rm[10^{-20} \, J]}$');
 rm_space(gca);
-
-rmax_l=[1.02, 1.04, 1.10, 1.12, 1.16, 1.02, 1.00, 0.98, 1.84];
+%                             ????              ????  ????  ????                          ????
+rmax_l(1,:)=     [1.00, 1.02, 1.04, 1.08, 1.10, 1.12, 1.14, 1.16, 1.04, 1.02, 1.00, 1.00, 0.98, 0.98, 0.98, 1.00, 0.98];
+rmax_l(2,:)=Rmoy-[1.00, 1.02, 1.04, 1.08, 1.10, 1.12, 1.14, 1.16, 1.34, 1.42, 1.52, 1.60, 1.66, 1.74, 1.82, 1.90, 1.98];
 rmax_r=rmax_l+0.02;
 rmax=(rmax_l+rmax_r)/2;
-rmax=min(rmax,Rmoy-rmax)
-
+% rmax=min(rmax,Rmoy-rmax)
+rmax_lavie_l=max(rmax_l(1,:),rmax_l(2,:))-0.01;
+rmax_lavie_r=min(rmax_r(1,:),rmax_r(2,:))+0.01;
+err_lavie=(rmax_lavie_r-rmax_lavie_l)/2;
+rmax_lavie=(rmax_lavie_r+rmax_lavie_l)/2;
 erry=0.02*ones(1,nsimul);
 
 figure
-errorbar(Rmoy,rmax,erry,erry,errx,errx,'o')
+% errorbar(Rmoy,rmax(1,:),erry,erry,errx,errx,'o')
+% hold on
+% errorbar(Rmoy,rmax(2,:),erry,erry,errx,errx,'o')
+% hold on
+errorbar(Rmoy,rmax_lavie,err_lavie,err_lavie,errx,errx,'o')
 hold on
 xlabel('$R \; {\rm[\AA]}$');
 ylabel('$r_m \; {\rm[\AA]}$');

@@ -26,11 +26,11 @@ dossier='simulations/transition_scan/';
 nsimul = 20; % number of simulations
 
 
-beta=linspace(0.1, 30, nsimul);
+beta=linspace(0.1, 10, nsimul);
 
-d_tau=0.05;
-N=round(beta/d_tau)
-beta=N*d_tau
+% d_tau=0.05;
+% N=round(beta/d_tau)
+% beta=N*d_tau
 
 
 name="beta";
@@ -43,7 +43,7 @@ output = cell(1, nsimul); % Tableau de cellules contenant le nom des fichiers de
 for i = 1:nsimul
     output{i} = sprintf('%s%s=%.15g.out',dossier,name,param(i)) ;
     % Execution du programme en lui envoyant la valeur a scanner en argument
-    cmd = sprintf('./%s%s config/transition.in %s=%.15g N_slices=%d output=%s', repertoire, code, name, param(i), N(i), output{i});
+    cmd = sprintf('./%s%s config/transition.in %s=%.15g N_slices=%d output=%s', repertoire, code, name, param(i), round(10*max(beta)), output{i});
     disp(cmd)
 %     system(cmd);
 
