@@ -225,23 +225,23 @@ ostream& operator<<(ostream& output, const System& s);
 
 void System::measure_energy(double V0, double x0){
 	double temp_energy_H(0), temp_energy_ETH(0);
-	
+
 	double R(V0);	//For H-bond, V0 is R
 	double D(83.402), a(2.2), r0(0.96), delta1(0.4*D), b(2.2), R1(2*r0+1/a), DELTA(delta1*exp(-b*(R-R1)));
-	
+
 	//temp_energy_ETH += pow(table[0][0], 2);
 	//temp_energy_ETH += (*ptr_Vext)(table[0][0]) + 2 * V0 * pow(table[0][0]/x0, 2) * (pow(table[0][0]/x0, 2) - 1);
 	temp_energy_ETH += (*ptr_Vext)(table[0][0]) + (*ptr_Vext).e0_estimator(table[0][0]);
-	
+
 	for(size_t i(1); i < table[0].size(); i++){
 		//temp_energy_ETH += pow(table[0][i], 2);
 		//temp_energy_ETH += (*ptr_Vext)(table[0][i]) + 2 * V0 * pow(table[0][i]/x0, 2) * (pow(table[0][i]/x0, 2) - 1);
 		temp_energy_ETH += (*ptr_Vext)(table[0][i]) + (*ptr_Vext).e0_estimator(table[0][i]);
-		
+
 		temp_energy_H += mass[0]/2 * pow((table[0][i] - table[0][i-1])/d_tau, 2) + (*ptr_Vext)(table[0][i]);
 	}
 	temp_energy_H += mass[0]/2 * pow((table[0][0] - table[0][N_slices-1])/d_tau, 2) + (*ptr_Vext)(table[0][0]);
-	
+
 	energies_psi.push_back(temp_energy_ETH/N_slices);
 	energies_h.push_back(temp_energy_H/N_slices);
 }
@@ -254,7 +254,7 @@ void System::average_energy(){
 	double temp_energy(0), temp_error(0);
 
 	cout << "Finally, with d_tau = " << d_tau << endl;
-	
+
 	//PSI energies
 	for(size_t i(0); i < energies_psi.size(); i++){
 		temp_energy += energies_psi[i];
@@ -265,11 +265,11 @@ void System::average_energy(){
 
 	cout << "PSI: " << temp_energy << " +- " << temp_error << endl;
 	fichier_output << "PSI: " << temp_energy << " +- " << temp_error << endl;
-	
+
 	//H energies
 	temp_energy = 0;
 	temp_error = 0;
-	
+
 	for(size_t i(0); i < energies_h.size(); i++){
 		temp_energy += energies_h[i];
 		temp_error += pow(energies_h[i], 2);
@@ -279,7 +279,7 @@ void System::average_energy(){
 
 	cout << "H:   " << temp_energy << " +- " << temp_error << endl;
 	fichier_output << "H:   " << temp_energy << " +- " << temp_error << endl;
-	
+
 	fichier_output.close();
 }
 
@@ -333,11 +333,15 @@ int main(int argc, char* argv[]){
 	ofstream fichier_energy(output_energy.c_str());
 	fichier_energy.precision(15);														// Precision
 
+	string output_rate(output+"_rate.out");
+	ofstream fichier_rate(output_rate.c_str());
+	fichier_rate.precision(15);		
+
 	System s(configFile);
 	s.initialize(pos_min,pos_max);
 	s.write_potExt(output);
 	fichier_output << s << endl;
-	
+
 	//UNCOMMENT IF YOU WANT TO COMPARE WITH OUTPUT2_NRG.OUT
 	//s.measure_energy();
 	double V0(configFile.get<double>("R"));
@@ -416,7 +420,8 @@ int main(int argc, char* argv[]){
 		if((i%n_stride) == 0){
 			fichier_output << s << endl;
 			fichier_energy << s.energy() << " " << s.get_H() << endl;
-			
+			fichier_rate << tmp_accrate << endl;
+
 			//Energy measurement
 			if(i >= N_thermalisation){
 				//fichier_energy << s.energy() << " " << s.get_H() << endl;
@@ -426,6 +431,7 @@ int main(int argc, char* argv[]){
 	}
 	fichier_output.close();
 	fichier_energy.close();
+	fichier_rate.close();
 
 	//Statistics
 	string output_stat(output+"_stat.out");
