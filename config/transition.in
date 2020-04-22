@@ -1,0 +1,48 @@
+% Physical parameters
+N_part		= 5	% number of particles
+beta			= 20
+mass			= 0.91		% e-30 kg
+m1				= 0.91
+m2				= 0.91
+m3				= 0.91
+m4				= 0.91
+m5				= 0.91
+frequency	= 1
+
+
+% At the beginning, min and max random positions:
+pos_min	= -0.1
+pos_max	= +0.1
+
+% Numerical parameters
+N_slices			= 150
+h					= 1
+idrate			= 0.8		% not used
+N_sweeps			= 100000
+N_thermal 		= 1000
+n_stride			= 500
+p_local			= 1		% fraction of times that N_slices local moves are tried
+p_displacement	= 0.1		% fraction of times that one global displacement is tried
+p_bissection	= 0.3		% fraction of times that one bisscetion is tried
+s_bissection	= 0.3		% relative size of the bissection compared to the size of the path
+p_swap			= 0
+p_inverse		= 0
+p_symmetryCM	= 0
+
+output = simulations/output
+
+
+% Potentials (harmonic, double or square)
+V_ext =	sin
+V_int =	LJ
+
+omega	= 1		%harmonic
+x0		= 15		%double
+V0		= 100		%double %square,
+xc		= 0		%square
+L		= 10		%square
+k		= 10		%rel
+l0		= 12		%rel
+R		= 2.9
+Vmin	= 100
+G		= 2

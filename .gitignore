@@ -7,3 +7,6 @@ config/*.in
 chebfun/*
 simulations/*
 *.mat
+FIG/*
+!test_accrate_rate.out
+!config/transition.in

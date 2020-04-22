@@ -12,19 +12,21 @@ number=1;
 
 file=sprintf('%s_%d',pot,beta)
 output=sprintf('../simulations/%s_%d/%s',file,number,file)
-output="simulations/output"
+output="harm_10"
 
 data=load(output+"_pot.out");
 xx=data(:,1);
 VV=data(:,2);
 figure 
 plot(xx,VV)
-n_part=3;
+n_part=1;
 
 data=load(output+"_pos.out");
 n_MCS=size(data,1)
 n_slices=size(data,2)/n_part
 A=zeros(n_MCS,n_slices,n_part);
+
+ssssss=mean(std(transpose(data),1))
 
 for k=1:n_part
 	A(:,:,k)=data(:,(1+(k-1)*n_slices):k*n_slices);
@@ -41,22 +43,23 @@ for k=1:n_part
         B((1+(l-1)*n_slices):l*n_slices,k)=A(l,:,k);
     end
 end
-sa=mean(B(:,2))
-B=B-sa;
+% sa=mean(B(:,2))
+% B=B-sa;
+% 
+% A2=zeros(n_MCS,n_slices,n_part);
+% moy=A(:,:,1);
+% for k=1:n_part
+%     A2(:,:,k)=A(:,:,k)-moy;
+% end
+% 
+% 
+% B2=zeros(n_MCS*n_slices,n_part);
+% for k=1:n_part
+%     for l=1:n_MCS
+%         B2((1+(l-1)*n_slices):l*n_slices,k)=A2(l,:,k);
+%     end
+% end
 
-A2=zeros(n_MCS,n_slices,n_part);
-moy=A(:,:,1);
-for k=1:n_part
-    A2(:,:,k)=A(:,:,k)-moy;
-end
-
-
-B2=zeros(n_MCS*n_slices,n_part);
-for k=1:n_part
-    for l=1:n_MCS
-        B2((1+(l-1)*n_slices):l*n_slices,k)=A2(l,:,k);
-    end
-end
 
 %%
 % X2=mean(A.^2,2);
@@ -194,16 +197,16 @@ figure
 %     pTot=pTot+dx*p(i);
 % end
 % disp(pTot)
-
-mean_x=zeros(1,3);
-for k=1:3
-    mean_x(k)=mean(B(:,k));
-end
+% 
+% mean_x=zeros(1,3);
+% for k=1:3
+%     mean_x(k)=mean(B(:,k));
+% end
 
 hold on;
 for k=1:n_part
     h(k)=histogram(B(:,k)-mean_x(1),51,'Normalization','pdf');
-    plot([mean_x(k) mean_x(k)]-mean_x(1),[0 25])
+%     plot([mean_x(k) mean_x(k)]-mean_x(1),[0 25])
 end
 
 figure

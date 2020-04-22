@@ -9,7 +9,7 @@ set(0,'defaultLegendInterpreter','latex');
 
 repertoire = '';
 code = 'main3';
-dossier='simulations/OH_scan/';
+dossier='simulations/OD_scan/';
 
 nsimul = 17; % number of simulations
 
@@ -27,10 +27,9 @@ output = cell(1, nsimul); % Tableau de cellules contenant le nom des fichiers de
 for i = 1:nsimul
     output{i} = sprintf('%s%s=%.15g.out',dossier,name,param(i)) ;
     % Execution du programme en lui envoyant la valeur a scanner en argument
-    cmd = sprintf('./%s%s config/Hbonds.in %s=%.15g output=%s', repertoire, code, name, param(i),output{i});
+    cmd = sprintf('./%s%s config/Dbonds.in %s=%.15g output=%s', repertoire, code, name, param(i),output{i});
     disp(cmd)
 %     system(cmd);
-
 end
 
 %% Analyse %%
@@ -41,6 +40,7 @@ end
 Heth=zeros(1,nsimul);
 errHeth=zeros(1,nsimul);
 Rmoy=zeros(1,nsimul);
+errx=zeros(1,3);
 
 for i=1:nsimul
     data=load(output{i}+"_e0.out");
@@ -72,30 +72,38 @@ for i=1:nsimul
         std_x(k)=std(B(:,k));
     end
     Rmoy(i)=mean_x(3)-mean_x(1)
+    B=B-Rmoy(i)/2;
+%     Rmoy(i)=mean(B(:,3)-B(:,1))
+%     errx(i)=sqrt(std_x(1)^2+std_x(3)^2);
+    errx(i)=std(std_x(1)+std_x(3))/sqrt(n_MCS*n_slices);
     
-%     figure('Position',[200,400,1520,680])
-%     hold on;
-%     for k=1:n_part
-%         h(k)=histogram(B(:,k)-mean_x(1),-0.5:0.02:3,'Normalization','pdf');
-% %         plot([mean_x(k) mean_x(k)]-mean_x(1),[0 25])
-%     end
-%     rm_space(gca);
+%         figure('Position',[200,400,1520,680])
+%         hold on;
+%         for k=1:n_part
+%             h(k)=histogram(B(:,k)-mean_x(1),-3:0.02:3,'Normalization','pdf');
+%             %         plot([mean_x(k) mean_x(k)]-mean_x(1),[0 25])
+%         end
+%         rm_space(gca);
+    
 end
 
 %%
 
-Rmoy=[2.0061 2.0556 2.1037 2.1535 2.1990 2.2495 2.2989 2.3477 2.3990 2.4538 2.5174 2.5867 2.6550 2.7381 2.8211 2.8986 2.9731]
-
-errx=sqrt(std_x(1)^2+std_x(3)^2)*ones(1,nsimul);
-
-figure
+f=1;
+fig(f)=figure;
 errorbar(Rmoy,Heth,errHeth,errHeth,errx,errx,'o')
 xlabel('$R \; {\rm[\AA]}$');
 ylabel('$E_0 \; {\rm[10^{-20} \, J]}$');
 rm_space(gca);
-%                             ????              ????  ????  ????                          ????
-rmax_l(1,:)=     [1.00, 1.02, 1.04, 1.08, 1.10, 1.12, 1.14, 1.16, 1.04, 1.02, 1.00, 1.00, 0.98, 0.98, 0.98, 1.00, 0.98];
-rmax_l(2,:)=Rmoy-[1.00, 1.02, 1.04, 1.08, 1.10, 1.12, 1.14, 1.16, 1.34, 1.42, 1.52, 1.60, 1.66, 1.74, 1.82, 1.90, 1.98];
+print(fig(f),'FIG/E0_OH3part_deut', '-depsc');
+% hydrogen
+% %                             ????              ????  ????  ????  ####                    ????
+% rmax_l(1,:)=     [1.00, 1.02, 1.04, 1.08, 1.10, 1.12, 1.14, 1.16, 1.20, 1.02, 1.00, 1.00, 0.98, 0.98, 0.98, 1.00, 0.98];
+% rmax_l(2,:)=Rmoy-[1.00, 1.02, 1.04, 1.08, 1.10, 1.12, 1.14, 1.16, 1.20, 1.42, 1.52, 1.60, 1.66, 1.74, 1.82, 1.90, 1.98];
+% deuterium
+rmax_l(1,:)=     [0.98, 1.02, 1.04, 1.06, 1.08, 1.12, 1.08, 1.06, 1.04, 1.00, 0.96, 1.02, 1.00, 1.00, 1.00, 0.98, 1.00];
+rmax_l(2,:)=Rmoy-[0.98, 1.02, 1.04, 1.06, 1.08, 1.12, 1.18, 1.28, 1.32, 1.44, 1.48, 1.60, 1.66, 1.76, 1.84, 1.90, 1.94];
+
 rmax_r=rmax_l+0.02;
 rmax=(rmax_l+rmax_r)/2;
 % rmax=min(rmax,Rmoy-rmax)
@@ -105,11 +113,12 @@ err_lavie=(rmax_lavie_r-rmax_lavie_l)/2;
 rmax_lavie=(rmax_lavie_r+rmax_lavie_l)/2;
 erry=0.02*ones(1,nsimul);
 
-figure
-% errorbar(Rmoy,rmax(1,:),erry,erry,errx,errx,'o')
-% hold on
-% errorbar(Rmoy,rmax(2,:),erry,erry,errx,errx,'o')
-% hold on
+f=f+1;
+fig(f)=figure;
+errorbar(Rmoy,rmax(1,:),erry,erry,errx,errx,'o')
+hold on
+errorbar(Rmoy,rmax(2,:),erry,erry,errx,errx,'o')
+hold on
 errorbar(Rmoy,rmax_lavie,err_lavie,err_lavie,errx,errx,'o')
 hold on
 xlabel('$R \; {\rm[\AA]}$');
@@ -131,6 +140,7 @@ end;
 
 plot(x, y, "Color", "b");
 rm_space(gca);
+print(fig(f),'FIG/rmin_OH3part_deut', '-depsc');
 
 
 function y = morse(x)

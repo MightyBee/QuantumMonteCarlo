@@ -1,43 +1,44 @@
 % Physical parameters
-N_part			= 1		% number of particles
-beta			= 1
-mass			= 1		% this one goes in the harmonic potential
+N_part		= 1		% number of particles
+beta			= 10
+mass			= 1		% e-30 kg
 m1				= 1
+frequency	= 1
 
 
 % At the beginning, min and max random positions:
-pos_min	= -5
-pos_max	= 5
+pos_min	= 0
+pos_max	= 0
+
 
 % Numerical parameters
-N_slices		= 10
-h				= 5
-idrate			= 0.5		% not used
-N_sweeps		= 110000
-N_thermal 		= 1000
-n_stride		= 500
+N_slices			= 1000
+h					= 1
+idrate			= 0.8
+N_sweeps			= 100
+N_thermal		= 10
+n_stride			= 1
 p_local			= 1		% fraction of times that N_slices local moves are tried
-p_displacement	= 1		% fraction of times that one global displacement is tried
-p_bissection	= 1		% fraction of times that one bisscetion is tried
+p_displacement	= 0		% fraction of times that one global displacement is tried
+p_bissection	= 0		% fraction of times that one bisscetion is tried
 s_bissection	= 0.3		% relative size of the bissection compared to the size of the path
-p_swap			= 1
-p_inverse		= 1
-p_symmetryCM	= 1
+p_swap			= 0
+p_inverse		= 0
+p_symmetryCM	= 0
 
-output = simulations/output
+output = test_accrate
 
 
-% Potentials (harmonic, double or square)
-V_ext =	double
+% Potentials (harmonic, double, square, sin or OHbonds)
+V_ext =	harmonic
 V_int =	null
 
 omega	= 1		%harmonic
-
-x0		= 5		%down here ref. values
-V0		= 1
-L		= 2
-
-k		= 4		% spring. l0 units of x, k untouched
-l0		= 2
-
-R		= 2.9		% H-bond
+x0		= 3		%double
+V0		= 5		%double %square
+xc		= 0		%square
+L		= 3		%square
+G		= 2
+k		= 4		%rel
+l0		= 5		%rel
+R		= 2.9

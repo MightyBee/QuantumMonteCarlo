@@ -64,4 +64,4 @@ plot(beta,Hmoy*1e-2,'+')
 xlabel('$\beta_N$')
 ylabel('$E \; {\rm [10^{-18} \; J]}$')
 rm_space(gca);
-print(f,'FIG/transition', '-depsc');
+print(f,sprintf('FIG/transition', '-depsc');

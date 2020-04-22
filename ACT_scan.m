@@ -10,10 +10,10 @@ repertoire = '';
 code = 'main2';
 dossier='simulations/ACT_scan/';
 
-nsimul = 5; % number of simulations
+nsimul = 10; % number of simulations
 
 
-N_slices=round(logspace(0.5, 2, nsimul));
+N_slices=round(logspace(1, 3, nsimul));
 
 name="N_slices";
 param = N_slices; %
@@ -28,7 +28,7 @@ for i = 1:nsimul
     % Execution du programme en lui envoyant la valeur a scanner en argument
     cmd = sprintf('./%s%s config/harmonic.in %s=%.15g output=%s', repertoire, code, name, param(i),output{i});
     disp(cmd)
-    system(cmd);
+%     system(cmd);
 
 end
 
@@ -74,5 +74,23 @@ end
 %%
 deltaT=1./N_slices
 
-figure
-loglog(1./N_slices,tau0,'+')
+X=10./N_slices;
+Y=tau0;
+X_log=log(X);
+Y_log=log(Y);
+Y_fit=fit_lin(X_log',Y_log',true);
+Y_fit=exp(Y_fit');
+
+
+f=1;
+fig(f)=figure('Position',[200,400,600,400]);
+loglog(X,Y,'+')
+hold on
+loglog(X,Y_fit)
+xlabel('$\Delta \tau \; {\rm[??]}$')
+ylabel('$\tau_0 \; {\rm[??]}$')
+rm_space(gca);
+print(fig(f),'FIG/tau0_ACT', '-depsc');
+
+
+

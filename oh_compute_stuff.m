@@ -144,7 +144,7 @@ rD_min_err  = 0.5*abs(rD_min_max - rD_min_min);
 figure('DefaultAxesFontSize', 14);
 
 
-
+%{
 
 plot(R_list, EH, '.', 'MarkerSize', 20, "Color", "r");
 hold on;
@@ -161,10 +161,10 @@ ylim([-145 -80]);
 yticks([-145:10:-80]);
 xticks([2:0.1:3]);
 xlim([2 3]);
+%}
 
 
 
-%{
 
 
 plot(R_list, R_list/2 + rH_min, '.', 'MarkerSize', 15, "Color", "r");

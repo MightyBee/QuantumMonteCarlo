@@ -14,7 +14,7 @@ h					= 1
 idrate			= 0.8		% not used
 N_sweeps			= 100000
 N_thermal		= 1000
-n_stride			= 20
+n_stride			= 1
 p_local			= 1		% fraction of times that N_slices local moves are tried
 p_displacement	= 1		% fraction of times that one global displacement is tried
 p_bissection	= 1		% fraction of times that one bisscetion is tried
@@ -23,7 +23,7 @@ p_swap			= 0
 p_inverse		= 1
 p_symmetryCM	= 1
 
-output = harm_120_3
+output = simulations/harm_120_3/harm_120
 
 V_ext =	harmonic
 mass  = 1

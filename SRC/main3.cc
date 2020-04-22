@@ -14,6 +14,7 @@ using namespace std;
 std::mt19937 rng(time(0));
 
 
+
 /*############################## NOTES ##############################
 	- theoretically x_0, x_1, ... , x_(N_slices)					, (N_slices+1) points
 	- we consider boundary conditions, x_0 = x_(N_slices)
@@ -54,7 +55,7 @@ private:
 class System {
 public:
 	System(const ConfigFile& configFile);
-	void initialize(const double& pos_min, const double& pos_max);
+	void initialize(const double& pos_min, const double& pos_max, const double& xc2);
 	void write_potExt(const string& output);
 	size_t nb_part() const {return N_part;}
 	size_t nb_slices() const {return N_slices;}
@@ -212,7 +213,7 @@ int main(int argc, char* argv[]){
 	fichier_energy.precision(15);														// Precision
 
 	System s(configFile);
-	s.initialize(pos_min,pos_max);
+	s.initialize(pos_min,pos_max,configFile.get<double>("xc2"));
 	//s.write_potExt(output);
 	fichier_output << s << endl;
 	fichier_energy << s.get_H() << " " << s.energy() << endl;
@@ -363,8 +364,8 @@ double Potential::operator()(const double& x0, const double& x1, const double& x
 	vector<double> X({x0,x1,x2});
 	X[part]+=h;
 	retour=0.0;
-	retour+=pow(2*(X[0]-0.0)/L,20);
-	retour+=pow(2*(X[2]-xc2)/L,20);
+	retour+=pow(2*(X[0]+xc2/2)/L,20);
+	retour+=pow(2*(X[2]-xc2/2)/L,20);
 	if(abs(X[1]-0.5*(X[0]+X[2])) < 8){
 		retour+=V1(X[1]-(X[2]+X[0])/2,X[2]-X[0]);
 		//retour+=0.5*(Vmorse(abs(X[1]-X[0]))+Vmorse(abs(X[1]-X[2])));
@@ -420,16 +421,16 @@ System::System(const ConfigFile& configFile) :
 	}
 
 
-void System::initialize(const double& pos_min, const double& pos_max){
+void System::initialize(const double& pos_min, const double& pos_max, const double& xc2){
 	/*//REMETTRE//for(auto& particle : table){ // initialize random paths for each particles
 		for(auto& pos : particle){
 			pos = randomDouble(pos_min, pos_max);
 		}
 	}*/
 	//ENLEVER->//
-	for(size_t i(0); i<N_part; i++){ // initialize random paths for each particles
+	for(int i(0); i<N_part; i++){ // initialize random paths for each particles
 		for(auto& pos : table[i]){
-			pos = randomDouble(pos_min, pos_max,false)+1.25*i;
+			pos = randomDouble(pos_min, pos_max,false)+xc2/2*(i-1);
 		}
 	}
 	//<-ENLEVER//
