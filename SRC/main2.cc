@@ -14,52 +14,73 @@ using namespace std;
 double hbar(1.054571628); // IUPAC
 
 std::mt19937 rng(time(0));
-//std::mt19937 rng(1);
-///srand(time(0));
 
-/* TODO :	finish swap move
-				output with hamiltonian
-*/
 
-/*############################## NOTES ##############################
-	- theoretically x_0, x_1, ... , x_(N_slices)					, (N_slices+1) points
+/*################################# NOTES #################################/
+	- theoretically x_0, x_1, ... , x_(N_slices)       , (N_slices+1) points
 	- we consider boundary conditions, x_0 = x_(N_slices)
-	- hence we only consider x_0, x_1, ... , x_(N_slices-1)	, N_slices points
+	- hence we only consider x_0, x_1, ... , x_(N_slices-1) , N_slices points
 	- to get the "full picture" simply add one more point, equal to x_0
 */
 
+/*###### PLAN OF THE CODE #####//
+	- Part A : headears
+			- A.1 : function headers
+			- A.2 : definitions of class "Potential_ext" and inherited classes
+			- A.3 : definitions of class "Potential_ext" and inherited classes
+			- A.4 : definitions of class "System"
+
+	- Part B : main
+			- B.1 : parameters acquisition and system initialization
+			- B.2 : metropolis algorithm
+			- B.3 : statistics writing
+
+	- Part A : definitions
+			- C.1 : definitions of the methods of class "Potential_ext" and
+			        inherited classes
+			- C.2 : definitions of the methods of class "Potential_ext" and
+			        inherited classes
+			- C.3 : definitions of the methods of class "System"
+			- C.4 : function definitions
 
 
-//############################## HEADERS ##############################
+*/
+
+//########################################################################//
+//########################################################################//
+//######################                            ######################//
+//######################      PART A : HEADERS      ######################//
+//######################                            ######################//
+//########################################################################//
+//########################################################################//
+
+
+//########################################################################//
+//######################## A.1 : FUNCTION HEADERS ########################//
+//########################################################################//
 
 // Generate a random (uniform) double between 'min' and 'max'
-double randomDouble(const double& min=0.0, const double& max=1.0, const bool& closed=true);
+double randomDouble(const double& min=0.0, const double& max=1.0,
+                    const bool& closed=true);
+
 // Generate a random double from a normal Cauchy distribution
 double CauchyDistribution();
-// Other distrubution ???
 
+// Generate a random double from one of the implemeneted distribution
 double GenerateDist(const double& h);
 
-// 'true' modulo (in mathematic sense)
-double mod(double a, double b){
-	return a - b*floor(a/b);
-}
-
-// periodic condition for interval [-L/2,L/2]
-double periodicBC(double x, double L){
-	return mod(x+0.5*L,L)-0.5*L;
-}
 
 
-
-//double QLagrangian(const vector<vector<double>>& pos, const double& d_tau);
-//double diff_QLagrangian(const vector<vector<double>>& pos, const double& d_tau, const unsigned int& m, const unsigned int& n, const double& new_pos);
+//########################################################################//
+//##################### A.2 : CLASSES Potential_ext ######################//
+//########################################################################//
 
 // Abstract class for external potential
 class Potential_ext {
 public:
 	// pure virtual method => abstract class
-	virtual double operator()(const double& x) const = 0; // return V at point x
+	// return V at point x
+	virtual double operator()(const double& x) const = 0;
 	double e0_estimator(const double& x) const{return 0;};
 };
 
@@ -77,7 +98,8 @@ public:
 	PotExt_harm(const ConfigFile& configFile);
 	double operator()(const double& x) const;
 private:
-  double m, omega2;
+	// mass and squared frequency
+	double m, omega2;
 };
 
 
@@ -87,6 +109,7 @@ public:
 	PotExt_double(const ConfigFile& configFile);
 	double operator()(const double& x) const;
 private:
+	// barrier height and position of the wells
 	double V0, x0;
 };
 
@@ -97,6 +120,7 @@ public:
 	PotExt_square(const ConfigFile& configFile);
 	double operator()(const double& x) const;
 private:
+	// potential height, position of the centre and width of the square well
 	double V0, x0, L;
 };
 
@@ -107,9 +131,12 @@ public:
 	PotExt_sin(const ConfigFile& configFile);
 	double operator()(const double& x) const;
 private:
+	// potential height and period
 	double V0, L;
 };
 
+
+// Class for a Lennard-Jones potential
 class PotExt_LJ: public Potential_ext {
 public:
 	PotExt_LJ(const ConfigFile& configFile);
@@ -118,30 +145,39 @@ private:
 	double V0, x0;
 };
 
-// Class for a sinusoidal potential
+// Class for a H-bond potential
 class PotExt_OHbonds: public Potential_ext {
 public:
 	PotExt_OHbonds(const ConfigFile& configFile);
+	// Morse potential
 	double Vmorse(const double& x) const;
+	// First derivative of Morse potential
 	double dVmorse(const double& x) const;
+	// Estimator of zero-point energy
 	double e0_estimator(const double& x) const;
+	// Return the value of the potential
 	double operator()(const double& x) const;
 private:
+	// Characteristic constants of the potential
 	double D, a, r0, delta1, b, R1;
+	// R : distance between the donor and accpetor
 	double R, DELTA;
 };
 
 
 
+//########################################################################//
+//##################### A.2 : CLASSES Potential_int ######################//
+//########################################################################//
 
- ////CAREFULLL HAVE TO TAKE BCs INTO ACCOUNT WHEN COMPUTAING INTERNAL POTENTIAL
 // Abstract class for internal potential
 class Potential_int {
 public:
 	// pure virtual method => abstract class
-	virtual double operator()(const double& x1, const double& x2) const = 0; // return V at point x
+	// return V for particle 1,2 at position x1,x2 resp.
+	virtual double operator()(const double& x1, const double& x2) const = 0;
 };
- ////CAREFULLL HAVE TO TAKE BCs INTO ACCOUNT WHEN COMPUTAING INTERNAL POTENTIAL
+
 
 // Class for a null internal potential (no interactions between particles)
 class PotInt_null: public Potential_int {
@@ -156,17 +192,28 @@ public:
 	PotInt_harm(const ConfigFile& configFile);
 	double operator()(const double& x1, const double& x2) const;
 private:
+	// stifness and rest length
 	double k, l0;
 };
 
+
+// Class for a Lennard-Jones potential between two particles
 class PotInt_LJ: public Potential_int {
 public:
 	PotInt_LJ(const ConfigFile& configFile);
+	// standard Lennard-Jones potential
 	double LJ(const double& r) const;
+	// Lennard-Jones with parameters defined below
 	double operator()(const double& x1, const double& x2) const;
 private:
 	double V0, x0, G;
 };
+
+
+
+//############################################################################//
+//########################### A.3 : CLASSES System ###########################//
+//############################################################################//
 
 
 
@@ -284,15 +331,30 @@ void System::average_energy(){
 }
 
 
-//################################################################################################//
-//############################################  MAIN  ############################################//
-//################################################################################################//
+
+
+
+
+
+
+
+//############################################################################//
+//############################################################################//
+//########################                            ########################//
+//########################       PART B : MAIN        ########################//
+//########################                            ########################//
+//############################################################################//
+//############################################################################//
 
 
 int main(int argc, char* argv[]){
 
 
-	//############################## VILLARD LIBRARY ##############################
+	//########################################################################//
+	//##################### B.1 : PARAMETERS ACQUISITION #####################//
+	//########################################################################//
+
+	//######################### VILLARD LIBRARY #########################//
 
 	string inputPath("configuration.in"); // Fichier d'input par defaut
 	if(argc>1) // Fichier d'input specifie par l'utilisateur ("./Exercice7 config_perso.in")
@@ -304,7 +366,7 @@ int main(int argc, char* argv[]){
 		configFile.process(argv[i]);
 
 
-	//############################## READ PARAMETERS ##############################
+	//######################### READ PARAMETERS #########################//
 
 	unsigned int N_sweeps(configFile.get<unsigned int>("N_sweeps"));		// number of Monte Carlo iterations (aka sweeps)
 	unsigned int N_thermalisation(configFile.get<unsigned int>("N_thermal"));	//How many steps should we wait before measuring stuff
@@ -335,7 +397,7 @@ int main(int argc, char* argv[]){
 
 	string output_rate(output+"_rate.out");
 	ofstream fichier_rate(output_rate.c_str());
-	fichier_rate.precision(15);		
+	fichier_rate.precision(15);
 
 	System s(configFile);
 	s.initialize(pos_min,pos_max);
@@ -348,9 +410,12 @@ int main(int argc, char* argv[]){
 	//double V0(configFile.get<double>("V0"));
 	double x0(configFile.get<double>("x0"));
 
-
-	//############################## METROPOLIS ALGORITHM ##############################
 	double last_measured_time(time(0));
+
+
+	//########################################################################//
+	//###################### B.2 : METROPOLIS ALGORITHM ######################//
+	//########################################################################//
 
 	//For every sweep...
 	for(size_t i(0); i < N_sweeps; i++){
@@ -433,6 +498,11 @@ int main(int argc, char* argv[]){
 	fichier_energy.close();
 	fichier_rate.close();
 
+
+	//########################################################################//
+	//####################### B.3 : STATISTICS WRITING #######################//
+	//########################################################################//
+
 	//Statistics
 	string output_stat(output+"_stat.out");
 	fichier_output.open(output_stat.c_str());
@@ -459,13 +529,26 @@ int main(int argc, char* argv[]){
 }
 
 
-//################################################################################################//
-//#########################################  END OF MAIN  ########################################//
-//################################################################################################//
 
 
 
-//########################### class 'Potential_ext' methods DEFINITIONS #############################
+
+
+
+
+//############################################################################//
+//############################################################################//
+//########################                            ########################//
+//########################    PART C : DEFINITIONS    ########################//
+//########################                            ########################//
+//############################################################################//
+//############################################################################//
+
+
+
+//############################################################################//
+//############# C.1 : CLASS 'Potential_ext' METHODS DEFINITIONS ##############//
+//############################################################################//
 
 
 //##### PotExt_harm ######
@@ -558,7 +641,13 @@ double PotExt_OHbonds::e0_estimator(const double& x) const{
 	return x/4 * (dVmorse(R/2+x) - dVmorse(R/2-x) - (Vmorse(R/2+x) - Vmorse(R/2-x))*(dVmorse(R/2+x) + dVmorse(R/2-x))/sqrt(pow(Vmorse(R/2+x) - Vmorse(R/2-x), 2) + 4*DELTA*DELTA));
 }
 
-//##### Potential_rel ######
+
+
+
+//############################################################################//
+//############# C.2 : CLASS 'Potential_int' METHODS DEFINITIONS ##############//
+//############################################################################//
+
 
 PotInt_harm::PotInt_harm(const ConfigFile& configFile) :
 	Potential_int(),
@@ -580,18 +669,35 @@ PotInt_LJ::PotInt_LJ(const ConfigFile& configFile) :
 	{}
 
 ////CAREFULLL HAVE TO TAKE BCs INTO ACCOUNT WHEN COMPUTAING INTERNAL POTENTIAL
+//double PotInt_LJ::LJ(const double& r) const {
+//	if(r<0)	return pow(r,12)-2*pow(r,6);
+//	else return 0.0;
+//}
+
+////CAREFULLL HAVE TO TAKE BCs INTO ACCOUNT WHEN COMPUTAING INTERNAL POTENTIAL
+//double PotInt_LJ::operator()(const double& x1, const double& x2) const {
+//	return V0*LJ((abs(x1-x2)/x0-1)/G-1);
+//}
+
+////CAREFULLL HAVE TO TAKE BCs INTO ACCOUNT WHEN COMPUTAING INTERNAL POTENTIAL
 double PotInt_LJ::LJ(const double& r) const {
-	if(r<0)	return pow(r,12)-2*pow(r,6);
-	else return 0.0;
+	if(r>0.35){
+		return pow(r,-12)-2*pow(r,-6);
+	}else{
+		return pow(0.35,-12)-2*pow(0.35,-6);
+	}
 }
 
 ////CAREFULLL HAVE TO TAKE BCs INTO ACCOUNT WHEN COMPUTAING INTERNAL POTENTIAL
 double PotInt_LJ::operator()(const double& x1, const double& x2) const {
-	return V0*LJ((abs(x1-x2)/x0-1)/G-1);
+	return V0*LJ(abs(x1-x2)/x0);
 }
 
 
-//########################### class 'System' methods DEFINITIONS #############################
+
+//############################################################################//
+//################# C.3 : CLASS 'System' METHODS DEFINITION ##################//
+//############################################################################//
 
 System::System(const ConfigFile& configFile) :
 	N_part(configFile.get<unsigned int>("N_part")),
@@ -647,7 +753,7 @@ void System::write_potExt(const string& output){
 	size_t N(10000);
 	double x(0.0);
 	for(size_t i(0); i<N; i++){
-		double xi(-200.0), xf(200.0);
+		double xi(-4.0), xf(4.0);
 		x=xi+i*(xf-xi)/(N-1);
 		f_pot << x << " " << (*ptr_Vext)(x) << endl;
 	}
@@ -929,7 +1035,11 @@ ostream& operator<<(ostream& output, const System& s){
 	return s.write(output);
 }
 
-//########################### FUNCTION DEFINITIONS #############################
+
+
+//############################################################################//
+//####################### C.4 : FUNCTION DEFINITIONS #########################//
+//############################################################################//
 
 double randomDouble(const double& min, const double& max, const bool& closed){
 	if(closed) return (min + (max-min) * (double)rng()/rng.max());
